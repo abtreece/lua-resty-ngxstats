@@ -33,8 +33,7 @@ function _M.key(key_table)
     return table.concat(key_table, ':')
 end
 
-
-function _M.in_table (value, table)
+function _M.in_table(value, table)
     for _, v in pairs(table) do
         if (v == value) then
             return true
@@ -43,6 +42,14 @@ function _M.in_table (value, table)
     return false
 end
 
+function _M.find_in_table(value, table)
+    for _, v in pairs(table) do
+        if string.find(v, value) then
+            return true
+        end
+    end
+    return false
+end
 
 function _M.format_response(key, value, response)
     local path = split(tostring(key), ':')
@@ -73,7 +80,6 @@ function _M.get_status_code_class(status)
       return "xxx"
   end
 end
-
 
 function _M.update(stats, key, value)
     stats:set(key, value)

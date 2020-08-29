@@ -1,20 +1,20 @@
 ngx.update_time()
-local stats = ngx.shared.ngx_stats;
-local group = ngx.var.stats_group
+local stats = ngx.shared.ngx_stats
 local req_time = (tonumber(ngx.now() - ngx.req.start_time()) * 1000)
 local status = tostring(ngx.status)
 local request_method = ngx.req.get_method()
+local request_path = string.gsub(ngx.var.uri, "%..*", "")
+local group = ngx.var.server_name
 
 -- General stats
 local upstream_response_time = tonumber(ngx.var.upstream_response_time)
 local upstream_connect_time = tonumber(ngx.var.upstream_connect_time)
---local upstream_request_time = upstream_response_time - upstream_connect_time
 local upstream_addr = ngx.var.upstream_addr
 local upstream_status = ngx.var.upstream_status
 
 -- Set default group, if it's not defined by nginx variable
-if not group or group == "" then
-    group = ngx.var.host
+if group == "_" or group == "" then
+    group = "default"
 end
 
 common.incr_or_create(stats, common.key({group, 'request', 'total'}), 1)
@@ -34,7 +34,6 @@ if upstream_response_time then
     common.incr_or_create(stats, common.key({group, 'upstream', 'requests'}), 1)
     common.incr_or_create(stats, common.key({group, 'upstream', 'response_time'}), (upstream_response_time or 0))
     common.incr_or_create(stats, common.key({group, 'upstream', 'connect_time'}), (upstream_connect_time or 0))
-    --common.update(stats, common.key({group, 'upstream', 'request_time'}), (upstream_request_time or 0))
     common.update(stats, common.key({group, 'upstream', 'address'}), upstream_addr)
     common.incr_or_create(stats, common.key({group, 'upstream', 'responses', common.get_status_code_class(upstream_status)}), 1)
     common.incr_or_create(stats, common.key({group, 'upstream', 'responses', status}), 1)
@@ -45,6 +44,8 @@ if common.in_table(ngx.var.upstream_cache_status, cache_status) then
     local status = string.lower(ngx.var.upstream_cache_status)
     common.incr_or_create(stats, common.key({group, 'cache', status}), 1)
 end
+
+common.incr_or_create(stats, common.key({group, 'paths', request_path}), 1)
 
 if common.in_table(request_method, query_method) then
     local method = string.lower(request_method)
