@@ -1,6 +1,5 @@
 local _M = {}
 
-
 local function split(str, pat)
    local t = {}  -- NOTE: use {n = 0} in Lua-5.0
    local fpat = "(.-)" .. pat
@@ -27,7 +26,6 @@ function _M.incr_or_create(stats, key, count)
         stats:incr(key, count)
     end
 end
-
 
 function _M.key(key_table)
     return table.concat(key_table, ':')
@@ -64,7 +62,6 @@ function _M.format_response(key, value, response)
     return response
 end
 
-
 function _M.get_status_code_class(status)
   if     status:sub(1,1) == '1' then
       return "1xx"
@@ -96,5 +93,5 @@ function _M.info(...)
 	ngx.log(ngx.INFO,log_sign,' ',...)
 end
 
-
 return _M
+
