@@ -1,6 +1,6 @@
 ngx.update_time()
 local stats = ngx.shared.ngx_stats
-local req_time = (tonumber(ngx.now() - ngx.req.start_time()) * 1000)
+--local req_time = (tonumber(ngx.now() - ngx.req.start_time()) * 1000)
 local status = tostring(ngx.status)
 --local request_method = ngx.req.get_method()
 local upstream_addr = tostring(ngx.var.upstream_addr)
@@ -30,15 +30,6 @@ end
 common.update(stats, common.key({'requests', 'current'}), ngx.var.connections_active)
 common.incr_or_create(stats, common.key({'requests', 'total'}), ngx.var.connections_active)
 
--- CONNECTIONS
---common.incr_or_create(stats, common.key({'connections', 'accepted'}), connections_accepted)
---common.update(stats, common.key({'connections', 'active'}), connections_active)
---common.update(stats, common.key({'connections', 'current'}), ngx.var.connection_requests)
---common.update(stats, common.key({'connections', 'handled'}), connections_handled)
---common.update(stats, common.key({'connections', 'idle'}), ngx.var.connections_waiting)
---common.update(stats, common.key({'connections', 'reading'}), connections_reading)
---common.update(stats, common.key({'connections', 'writing'}), connections_writing)
-
 -- SERVER_ZONES
 common.incr_or_create(stats, common.key({'server_zones', group, 'requests'}), 1)
 common.incr_or_create(stats, common.key({'server_zones', group, 'received'}), tonumber(ngx.var.request_length))
@@ -46,13 +37,6 @@ common.incr_or_create(stats, common.key({'server_zones', group, 'sent'}), tonumb
 common.incr_or_create(stats, common.key({'server_zones', group, 'responses', common.get_status_code_class(status)}), 1)
 common.incr_or_create(stats, common.key({'server_zones', group, 'responses', status}), 1)
 common.incr_or_create(stats, common.key({'server_zones', group, 'responses', 'total'}), 1)
-
---if common.in_table(request_method, query_method) then
---    local method = string.lower(request_method)
---    common.incr_or_create(stats, common.key({'server_zones', group, 'request_methods', method}), 1)
---end
-
---common.incr_or_create(stats, common.key({'server', group, 'paths', request_path}), 1)
 
 -- UPSTREAM
 if upstream_response_time then
@@ -70,7 +54,7 @@ if upstream_response_time then
 end
 
 -- CACHE
-if common.in_table(ngx.var.upstream_cache_status, cache_status) then
-    local status = string.lower(ngx.var.upstream_cache_status)
-    common.incr_or_create(stats, common.key({'server_zones', group, 'cache', status}), 1)
-end
+--if common.in_table(ngx.var.upstream_cache_status, cache_status) then
+--    local status = string.lower(ngx.var.upstream_cache_status)
+--    common.incr_or_create(stats, common.key({'server_zones', group, 'cache', status}), 1)
+--end
