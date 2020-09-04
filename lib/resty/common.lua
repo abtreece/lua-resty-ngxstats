@@ -78,8 +78,12 @@ function _M.get_status_code_class(status)
   end
 end
 
-function _M.update(stats, key, value)
-    stats:set(key, value)
+function _M.update_num(stats, key, value)
+    stats:set(key, tonumber(value))
+end
+
+function _M.update_str(stats, key, value)
+    stats:set(key, tostring(value))
 end
 
 local log_sign = "ngxstats"

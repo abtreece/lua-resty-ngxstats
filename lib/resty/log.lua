@@ -27,7 +27,7 @@ if upstream_name == "" then
 end
 
 -- GENERIC
-common.update(stats, common.key({'requests', 'current'}), ngx.var.connections_active)
+common.update_num(stats, common.key({'requests', 'current'}), ngx.var.connections_active)
 common.incr_or_create(stats, common.key({'requests', 'total'}), ngx.var.connections_active)
 
 -- SERVER_ZONES
@@ -49,7 +49,7 @@ if upstream_response_time then
     common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'responses', common.get_status_code_class(upstream_status)}), 1)
     common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'responses', status}), 1)
     common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'responses', 'total'}), 1)
-    common.update(stats, common.key({'upstreams', upstream_name, 'server'}), upstream_addr)
+    common.update_str(stats, common.key({'upstreams', upstream_name, 'server'}), upstream_addr)
 
 end
 

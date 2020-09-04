@@ -5,6 +5,7 @@ local pairs         = pairs
 local ipairs        = ipairs
 local select        = select
 local tostring      = tostring
+local tonumber      = tonumber
 local sort          = table.sort
 local concat        = table.concat
 local insert        = table.insert
