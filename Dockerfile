@@ -2,7 +2,7 @@ FROM openresty/openresty:alpine-fat
 
 LABEL org.opencontainers.image.title="lua-resty-ngxstats"
 LABEL org.opencontainers.image.description="OpenResty/NGINX metrics collection and Prometheus exporter"
-LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.version="1.1.0"
 LABEL org.opencontainers.image.source="https://github.com/abtreece/lua-resty-ngxstats"
 LABEL org.opencontainers.image.licenses="MIT"
 

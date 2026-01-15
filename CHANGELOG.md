@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-01-15
+
+### Added
+- **Request timing metrics** - `nginx_server_zone_request_time_seconds` tracks total request processing time per zone
+- **SSL/TLS protocol metrics** - `nginx_server_zone_ssl_total` tracks requests by SSL/TLS protocol version (TLSv1.2, TLSv1.3, etc.)
+- **Docker improvements**
+  - `.dockerignore` file to reduce image size
+  - OCI image labels (title, description, version, source, license)
+  - `HEALTHCHECK` directive for container health monitoring
+- **Deployment examples**
+  - `examples/docker-compose.yml` - Complete stack with Prometheus and Grafana
+  - `examples/prometheus.yml` - Prometheus scrape configuration
+  - `examples/nginx.conf.example` - Production-ready NGINX configuration
+
+### Changed
+- **BREAKING:** Restructured module namespace from `stats.*` to `resty.ngxstats.*` for lua-resty-* compatibility
+- Modules moved from `lib/resty/*.lua` to `lib/resty/ngxstats/`
+- Added `version.lua` as single source of truth for version information
+- Created proper `.rockspec` file for LuaRocks distribution
+
+### Removed
+- Unused `lib/resty/utils.lua` placeholder file
+- CI symlink workaround (no longer needed with proper structure)
+
 ## [1.0.0] - 2026-01-15
 
 ### Added
@@ -59,5 +83,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance characteristics
 - Comparison with nginx-module-vts and NGINX Plus
 
-[Unreleased]: https://github.com/abtreece/lua-resty-ngxstats/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/abtreece/lua-resty-ngxstats/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/abtreece/lua-resty-ngxstats/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/abtreece/lua-resty-ngxstats/releases/tag/v1.0.0
