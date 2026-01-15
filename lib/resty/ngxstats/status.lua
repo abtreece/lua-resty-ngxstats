@@ -1,6 +1,6 @@
 local _M = {}
 
-local common = require "stats.common"
+local common = require "resty.ngxstats.common"
 
 local find = string.find
 local select = select

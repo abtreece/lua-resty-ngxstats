@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Claude Code
+.claude/
+
+# Documentation (not needed in image)
+*.md
+!README.md
+docs/
+
+# Tests (not needed in runtime image)
+spec/
+.luacheckrc
+
+# Development files
+Makefile
+test.sh
+.editorconfig
+
+# LuaRocks spec (not needed in image)
+*.rockspec
+
+# Distribution metadata
+dist.ini

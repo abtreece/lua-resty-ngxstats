@@ -1,0 +1,143 @@
+# Production-ready NGINX configuration with lua-resty-ngxstats
+#
+# This example demonstrates:
+# - Metrics collection for all requests
+# - Separate metrics endpoint on port 8080
+# - Upstream monitoring
+# - Cache metrics tracking
+# - Rate limiting
+#
+# Customize the upstream and server blocks for your application.
+
+worker_processes auto;
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+events {
+    worker_connections 1024;
+    use epoll;
+    multi_accept on;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    # Logging format with upstream timing
+    log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+                    '$status $body_bytes_sent "$http_referer" '
+                    '"$http_user_agent" "$http_x_forwarded_for" '
+                    'rt=$request_time uct="$upstream_connect_time" '
+                    'uht="$upstream_header_time" urt="$upstream_response_time"';
+
+    access_log /var/log/nginx/access.log main;
+
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+    keepalive_timeout 65;
+    types_hash_max_size 2048;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml application/json application/javascript
+               application/rss+xml application/atom+xml image/svg+xml;
+
+    # lua-resty-ngxstats configuration
+    lua_shared_dict ngx_stats 10m;
+    lua_package_path '/etc/nginx/lua/?.lua;/etc/nginx/lua/?/init.lua;;';
+    init_by_lua_file /etc/nginx/lua/resty/ngxstats/init.lua;
+
+    # Rate limiting zones
+    limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
+
+    # Cache configuration
+    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=app_cache:10m
+                     max_size=1g inactive=60m use_temp_path=off;
+
+    # Example upstream - replace with your backend servers
+    upstream backend {
+        least_conn;
+        server backend1.example.com:8080 weight=5;
+        server backend2.example.com:8080 weight=5;
+        keepalive 32;
+    }
+
+    # Main application server
+    server {
+        listen 80;
+        server_name example.com www.example.com;
+
+        # Enable cache for static content
+        proxy_cache app_cache;
+        proxy_cache_valid 200 302 10m;
+        proxy_cache_valid 404 1m;
+        proxy_cache_use_stale error timeout updating http_500 http_502 http_503 http_504;
+        add_header X-Cache-Status $upstream_cache_status;
+
+        # Collect metrics for all requests
+        log_by_lua_file /etc/nginx/lua/resty/ngxstats/log.lua;
+
+        # API endpoints with rate limiting
+        location /api/ {
+            limit_req zone=api_limit burst=20 nodelay;
+            proxy_pass http://backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Connection "";
+        }
+
+        # Static content - bypass cache tracking
+        location /static/ {
+            alias /var/www/static/;
+            expires 30d;
+            add_header Cache-Control "public, immutable";
+        }
+
+        # Default proxy
+        location / {
+            proxy_pass http://backend;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Connection "";
+        }
+
+        # Health check endpoint
+        location /health {
+            access_log off;
+            return 200 "OK\n";
+            add_header Content-Type text/plain;
+        }
+    }
+
+    # Metrics server - bind to localhost or internal network only
+    server {
+        listen 8080;
+        # In production, bind to internal interface:
+        # listen 127.0.0.1:8080;
+
+        # Prometheus metrics endpoint
+        location /status {
+            default_type 'text/plain; version=0.0.4; charset=utf-8';
+            content_by_lua_file /etc/nginx/lua/resty/ngxstats/show.lua;
+        }
+
+        # Internal nginx status for metrics collection
+        location /nginx_status {
+            stub_status on;
+            access_log off;
+            allow 127.0.0.1;
+            deny all;
+        }
+
+        # Collect connection stats on each metrics request
+        access_by_lua_file /etc/nginx/lua/resty/ngxstats/status.lua;
+    }
+}

@@ -6,7 +6,7 @@
 
 local _M = {}
 
-local prometheus = require "stats.prometheus"
+local prometheus = require "resty.ngxstats.prometheus"
 
 function _M.run()
     local stats = ngx.shared.ngx_stats

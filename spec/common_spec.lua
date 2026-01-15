@@ -1,5 +1,5 @@
 --[[
-  Unit tests for lib/resty/common.lua
+  Unit tests for lib/resty/ngxstats/common.lua
 ]]--
 
 describe("common module", function()
@@ -15,9 +15,9 @@ describe("common module", function()
     }
 
     before_each(function()
-        package.loaded['stats.common'] = nil
+        package.loaded['resty.ngxstats.common'] = nil
         helpers = require "spec.helpers"
-        common = require "stats.common"
+        common = require "resty.ngxstats.common"
         mock_stats = helpers.mock_shared_dict()
     end)
 
