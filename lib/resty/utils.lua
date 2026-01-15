@@ -1,17 +1,5 @@
-local type          = type
-local pairs         = pairs
-local type          = type
-local pairs         = pairs
-local ipairs        = ipairs
-local select        = select
-local tostring      = tostring
-local tonumber      = tonumber
-local sort          = table.sort
-local concat        = table.concat
-local insert        = table.insert
-local lower         = string.lower
-local fmt           = string.format
-local find          = string.find
-local gsub          = string.gsub
-local re_find       = ngx.re.find
-local re_match      = ngx.re.match
+-- Utility module placeholder
+-- This module is currently not used but kept for future utilities
+local _M = {}
+
+return _M

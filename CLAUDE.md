@@ -19,6 +19,13 @@ Access points when running:
 - Port 80: Main proxy server with test endpoints
 - Port 8080: Admin server (`/status` for JSON stats, `/nginx_status` for stub status)
 
+## Git Commit Guidelines
+
+- All commits should be authored by the repository owner
+- Do NOT include Co-Authored-By lines or AI attribution in commit messages
+- Use conventional commit format: `<type>: <description>`
+- Keep commit messages clear and concise
+
 ## Architecture
 
 ### Data Flow

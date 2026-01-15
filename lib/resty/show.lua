@@ -1,10 +1,24 @@
-local stats = ngx.shared.ngx_stats;
-local keys = stats:get_keys()
-local response = {}
+--[[
+  Output handler for metrics endpoint
 
-for k,v in pairs(keys) do
-    response = common.format_response(v, stats:get(v), response)
+  Formats and outputs metrics in Prometheus text exposition format
+]]--
+
+local _M = {}
+
+local prometheus = require "stats.prometheus"
+
+function _M.run()
+    local stats = ngx.shared.ngx_stats
+
+    -- Generate Prometheus format output
+    local output = prometheus.format(stats)
+
+    ngx.header.content_type = "text/plain; version=0.0.4"
+    ngx.say(output)
 end
 
-ngx.header.content_type = "application/json"
-ngx.say(cjson.encode(response))
+-- Execute when loaded as a script
+_M.run()
+
+return _M
