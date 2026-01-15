@@ -101,7 +101,7 @@ describe("prometheus module", function()
 
             assert.matches('nginx_upstream_requests_total{upstream="example_com"} 50', output)
             assert.matches('nginx_upstream_response_time_seconds{upstream="example_com"} 5.5', output)
-            assert.matches('nginx_upstream_server_info{upstream="example_com",server="192.168.1.1:8080"} 1', output)
+            assert.matches('nginx_upstream_server_info{server="192.168.1.1:8080",upstream="example_com"} 1', output)
         end)
 
         it("should include HELP and TYPE comments", function()
