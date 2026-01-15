@@ -162,6 +162,33 @@ function _M.update_str(stats, key, value)
     stats:set(key, tostring(value))
 end
 
+--[[
+  Safe conversion to number with default value
+  @param value - Value to convert
+  @param default - Default value if conversion fails (defaults to 0)
+  @return number - Converted number or default
+]]--
+function _M.safe_tonumber(value, default)
+    if value == nil or value == "" then
+        return default or 0
+    end
+    local num = tonumber(value)
+    return num or default or 0
+end
+
+--[[
+  Safe conversion to string with default value
+  @param value - Value to convert
+  @param default - Default value if nil (defaults to "")
+  @return string - Converted string or default
+]]--
+function _M.safe_tostring(value, default)
+    if value == nil then
+        return default or ""
+    end
+    return tostring(value)
+end
+
 local log_sign = "ngxstats"
 
 --[[

@@ -19,25 +19,16 @@ function _M.run()
       return ngx.exit(500)
     end
 
-    -- Safe conversion to number with default value
-    local function safe_tonumber(value, default)
-        if value == nil or value == "" then
-            return default or 0
-        end
-        local num = tonumber(value)
-        return num or default or 0
-    end
-
     local var = ngx.var
     local accepted, handled, total = select(3, find(res.body, "accepts handled requests\n (%d*) (%d*) (%d*)"))
 
-    local connections_active = safe_tonumber(var.connections_active)
-    local connections_reading = safe_tonumber(var.connections_reading)
-    local connections_writing = safe_tonumber(var.connections_writing)
-    local connections_waiting = safe_tonumber(var.connections_waiting)
-    local connections_accepted = safe_tonumber(accepted)
-    local connections_handled = safe_tonumber(handled)
-    local total_requests = safe_tonumber(total)
+    local connections_active = common.safe_tonumber(var.connections_active)
+    local connections_reading = common.safe_tonumber(var.connections_reading)
+    local connections_writing = common.safe_tonumber(var.connections_writing)
+    local connections_waiting = common.safe_tonumber(var.connections_waiting)
+    local connections_accepted = common.safe_tonumber(accepted)
+    local connections_handled = common.safe_tonumber(handled)
+    local total_requests = common.safe_tonumber(total)
 
     -- CONNECTIONS
     common.update_num(stats, common.key({'connections', 'accepted'}), connections_accepted)

@@ -171,6 +171,53 @@ describe("common module", function()
         end)
     end)
 
+    describe("safe_tonumber()", function()
+        it("should convert valid numbers", function()
+            assert.equals(42, common.safe_tonumber("42"))
+            assert.equals(3.14, common.safe_tonumber("3.14"))
+        end)
+
+        it("should return default for nil", function()
+            assert.equals(0, common.safe_tonumber(nil))
+            assert.equals(99, common.safe_tonumber(nil, 99))
+        end)
+
+        it("should return default for empty string", function()
+            assert.equals(0, common.safe_tonumber(""))
+            assert.equals(5, common.safe_tonumber("", 5))
+        end)
+
+        it("should return default for invalid strings", function()
+            assert.equals(0, common.safe_tonumber("abc"))
+            assert.equals(10, common.safe_tonumber("invalid", 10))
+        end)
+
+        it("should handle zero", function()
+            assert.equals(0, common.safe_tonumber("0"))
+            assert.equals(0, common.safe_tonumber(0))
+        end)
+    end)
+
+    describe("safe_tostring()", function()
+        it("should convert values to strings", function()
+            assert.equals("42", common.safe_tostring(42))
+            assert.equals("true", common.safe_tostring(true))
+        end)
+
+        it("should return default for nil", function()
+            assert.equals("", common.safe_tostring(nil))
+            assert.equals("default", common.safe_tostring(nil, "default"))
+        end)
+
+        it("should handle empty string", function()
+            assert.equals("", common.safe_tostring(""))
+        end)
+
+        it("should handle zero", function()
+            assert.equals("0", common.safe_tostring(0))
+        end)
+    end)
+
     describe("format_response()", function()
         it("should convert flat keys to nested structure", function()
             local response = {}
