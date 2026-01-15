@@ -1,8 +1,20 @@
-.PHONY: lint
+.PHONY: lint test build run_dev help
+
 IMAGE_NAME	:= "ngxstats-nginx"
+
+help:
+	@echo "Available targets:"
+	@echo "  lint      - Run luacheck on Lua files"
+	@echo "  test      - Run busted unit tests"
+	@echo "  build     - Build Docker image"
+	@echo "  run_dev   - Run Docker container in development mode"
+	@echo "  help      - Show this help message"
 
 lint:
 	@luacheck -q ./lib/resty
+
+test:
+	@busted --verbose
 
 build: Dockerfile
 	docker build --no-cache -t $(IMAGE_NAME) .
