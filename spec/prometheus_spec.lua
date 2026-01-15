@@ -66,10 +66,10 @@ describe("prometheus module", function()
 
             local output = prometheus.format(mock_stats)
 
-            assert.matches('nginx_server_zone_responses_total{zone="default",status="200"}', output)
-            assert.matches('nginx_server_zone_responses_total{zone="default",status="404"}', output)
-            assert.matches('nginx_server_zone_responses_total{zone="default",status="2xx"}', output)
-            assert.matches('nginx_server_zone_responses_total{zone="default",status="4xx"}', output)
+            assert.matches('nginx_server_zone_responses_total{status="200",zone="default"}', output)
+            assert.matches('nginx_server_zone_responses_total{status="404",zone="default"}', output)
+            assert.matches('nginx_server_zone_responses_total{status="2xx",zone="default"}', output)
+            assert.matches('nginx_server_zone_responses_total{status="4xx",zone="default"}', output)
         end)
 
         it("should format method metrics", function()
@@ -78,8 +78,8 @@ describe("prometheus module", function()
 
             local output = prometheus.format(mock_stats)
 
-            assert.matches('nginx_server_zone_methods_total{zone="default",method="GET"} 80', output)
-            assert.matches('nginx_server_zone_methods_total{zone="default",method="POST"} 20', output)
+            assert.matches('nginx_server_zone_methods_total{method="GET",zone="default"} 80', output)
+            assert.matches('nginx_server_zone_methods_total{method="POST",zone="default"} 20', output)
         end)
 
         it("should format cache metrics", function()
@@ -88,8 +88,8 @@ describe("prometheus module", function()
 
             local output = prometheus.format(mock_stats)
 
-            assert.matches('nginx_server_zone_cache_total{zone="default",cache_status="hit"} 100', output)
-            assert.matches('nginx_server_zone_cache_total{zone="default",cache_status="miss"} 20', output)
+            assert.matches('nginx_server_zone_cache_total{cache_status="hit",zone="default"} 100', output)
+            assert.matches('nginx_server_zone_cache_total{cache_status="miss",zone="default"} 20', output)
         end)
 
         it("should format upstream metrics with labels", function()
