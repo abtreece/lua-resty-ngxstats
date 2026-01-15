@@ -4,7 +4,6 @@ local common = require "stats.common"
 
 local find = string.find
 local select = select
-local tonumber = tonumber
 
 function _M.run()
     local stats = ngx.shared.ngx_stats
@@ -20,7 +19,7 @@ function _M.run()
     end
 
     local var = ngx.var
-    local accepted, handled, total = select(3, find(res.body, "accepts handled requests\n (%d*) (%d*) (%d*)"))
+    local accepted, handled = select(3, find(res.body, "accepts handled requests\n (%d*) (%d*) (%d*)"))
 
     local connections_active = common.safe_tonumber(var.connections_active)
     local connections_reading = common.safe_tonumber(var.connections_reading)
@@ -28,7 +27,6 @@ function _M.run()
     local connections_waiting = common.safe_tonumber(var.connections_waiting)
     local connections_accepted = common.safe_tonumber(accepted)
     local connections_handled = common.safe_tonumber(handled)
-    local total_requests = common.safe_tonumber(total)
 
     -- CONNECTIONS
     common.update_num(stats, common.key({'connections', 'accepted'}), connections_accepted)

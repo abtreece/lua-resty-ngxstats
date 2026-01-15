@@ -39,9 +39,12 @@ function _M.run()
 
     -- SERVER_ZONES
     common.incr_or_create(stats, common.key({'server_zones', group, 'requests'}), 1)
-    common.incr_or_create(stats, common.key({'server_zones', group, 'received'}), common.safe_tonumber(ngx.var.request_length))
-    common.incr_or_create(stats, common.key({'server_zones', group, 'sent'}), common.safe_tonumber(ngx.var.bytes_sent))
-    common.incr_or_create(stats, common.key({'server_zones', group, 'responses', common.get_status_code_class(status)}), 1)
+    common.incr_or_create(stats, common.key({'server_zones', group, 'received'}),
+        common.safe_tonumber(ngx.var.request_length))
+    common.incr_or_create(stats, common.key({'server_zones', group, 'sent'}),
+        common.safe_tonumber(ngx.var.bytes_sent))
+    common.incr_or_create(stats,
+        common.key({'server_zones', group, 'responses', common.get_status_code_class(status)}), 1)
     common.incr_or_create(stats, common.key({'server_zones', group, 'responses', status}), 1)
     common.incr_or_create(stats, common.key({'server_zones', group, 'responses', 'total'}), 1)
 
@@ -51,12 +54,18 @@ function _M.run()
     -- UPSTREAM
     if upstream_response_time then
         common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'requests'}), 1)
-        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'response_time'}), (upstream_response_time or 0))
-        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'queue_time'}), (upstream_queue_time or 0))
-        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'connect_time'}), (upstream_connect_time or 0))
-        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'sent'}), common.safe_tonumber(ngx.var.upstream_bytes_sent))
-        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'received'}), common.safe_tonumber(ngx.var.upstream_bytes_received))
-        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'responses', common.get_status_code_class(upstream_status)}), 1)
+        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'response_time'}),
+            (upstream_response_time or 0))
+        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'queue_time'}),
+            (upstream_queue_time or 0))
+        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'connect_time'}),
+            (upstream_connect_time or 0))
+        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'sent'}),
+            common.safe_tonumber(ngx.var.upstream_bytes_sent))
+        common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'received'}),
+            common.safe_tonumber(ngx.var.upstream_bytes_received))
+        common.incr_or_create(stats,
+            common.key({'upstreams', upstream_name, 'responses', common.get_status_code_class(upstream_status)}), 1)
         common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'responses', status}), 1)
         common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'responses', 'total'}), 1)
         common.update_str(stats, common.key({'upstreams', upstream_name, 'server'}), upstream_addr)

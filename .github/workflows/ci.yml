@@ -46,6 +46,8 @@ jobs:
 
       - name: Run tests
         run: make test
+        env:
+          LUA_PATH: "./lib/resty/?.lua;;"
 
   docker-build:
     name: Build Docker Image
