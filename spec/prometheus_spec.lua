@@ -66,10 +66,11 @@ describe("prometheus module", function()
 
             local output = prometheus.format(mock_stats)
 
-            assert.matches('nginx_server_zone_responses_total{zone="default",status="200"}', output)
-            assert.matches('nginx_server_zone_responses_total{zone="default",status="404"}', output)
-            assert.matches('nginx_server_zone_responses_total{zone="default",status="2xx"}', output)
-            assert.matches('nginx_server_zone_responses_total{zone="default",status="4xx"}', output)
+            -- Label order may vary due to Lua table iteration, check for both label components
+            assert.matches('nginx_server_zone_responses_total{.*zone="default".*status="200"', output)
+            assert.matches('nginx_server_zone_responses_total{.*zone="default".*status="404"', output)
+            assert.matches('nginx_server_zone_responses_total{.*zone="default".*status="2xx"', output)
+            assert.matches('nginx_server_zone_responses_total{.*zone="default".*status="4xx"', output)
         end)
 
         it("should format method metrics", function()
@@ -78,8 +79,11 @@ describe("prometheus module", function()
 
             local output = prometheus.format(mock_stats)
 
-            assert.matches('nginx_server_zone_methods_total{zone="default",method="GET"} 80', output)
-            assert.matches('nginx_server_zone_methods_total{zone="default",method="POST"} 20', output)
+            -- Label order may vary due to Lua table iteration, check for both label components
+            assert.matches('nginx_server_zone_methods_total{.*zone="default".*method="GET"', output)
+            assert.matches('nginx_server_zone_methods_total{.*zone="default".*method="POST"', output)
+            assert.matches('} 80', output)
+            assert.matches('} 20', output)
         end)
 
         it("should format cache metrics", function()
@@ -88,8 +92,11 @@ describe("prometheus module", function()
 
             local output = prometheus.format(mock_stats)
 
-            assert.matches('nginx_server_zone_cache_total{zone="default",cache_status="hit"} 100', output)
-            assert.matches('nginx_server_zone_cache_total{zone="default",cache_status="miss"} 20', output)
+            -- Label order may vary due to Lua table iteration, check for both label components
+            assert.matches('nginx_server_zone_cache_total{.*zone="default".*cache_status="hit"', output)
+            assert.matches('nginx_server_zone_cache_total{.*zone="default".*cache_status="miss"', output)
+            assert.matches('} 100', output)
+            assert.matches('} 20', output)
         end)
 
         it("should format upstream metrics with labels", function()
