@@ -208,5 +208,27 @@ function _M.info(...)
 	ngx.log(ngx.INFO,log_sign,' ',...)
 end
 
+-- Standard histogram buckets for latency metrics (in seconds)
+-- Based on Prometheus best practices for HTTP latency
+_M.LATENCY_BUCKETS = {0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10}
+
+--[[
+  Increment histogram bucket counters for a latency value
+  @param stats - The shared memory dictionary
+  @param key_prefix - Base key for the histogram (e.g., "server_zones:default:request_time_bucket")
+  @param value - The latency value in seconds
+  @param buckets - Optional custom bucket boundaries (defaults to LATENCY_BUCKETS)
+]]--
+function _M.record_histogram(stats, key_prefix, value, buckets)
+    buckets = buckets or _M.LATENCY_BUCKETS
+    for _, bucket in ipairs(buckets) do
+        if value <= bucket then
+            _M.incr_or_create(stats, key_prefix .. ":" .. tostring(bucket), 1)
+        end
+    end
+    -- Always increment +Inf bucket
+    _M.incr_or_create(stats, key_prefix .. ":+Inf", 1)
+end
+
 return _M
 
