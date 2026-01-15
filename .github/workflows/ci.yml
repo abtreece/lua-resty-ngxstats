@@ -44,10 +44,13 @@ jobs:
       - name: Install busted
         run: luarocks install busted
 
+      - name: Set up module symlink for tests
+        run: ln -s resty lib/stats
+
       - name: Run tests
         run: make test
         env:
-          LUA_PATH: "./lib/resty/?.lua;;"
+          LUA_PATH: "./lib/?.lua;;"
 
   docker-build:
     name: Build Docker Image
