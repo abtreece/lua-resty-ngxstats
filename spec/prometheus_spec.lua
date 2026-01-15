@@ -100,38 +100,42 @@ describe("prometheus module", function()
 
         it("should format upstream metrics with labels", function()
             mock_stats:set("upstreams:example_com:requests", 50)
-            mock_stats:set("upstreams:example_com:response_time", 5.5)
+            mock_stats:set("upstreams:example_com:response_time_sum", 5.5)
+            mock_stats:set("upstreams:example_com:response_time_count", 10)
             mock_stats:set("upstreams:example_com:server", "192.168.1.1:8080")
 
             local output = prometheus.format(mock_stats)
 
             assert.matches('nginx_upstream_requests_total{upstream="example_com"} 50', output)
-            assert.matches('nginx_upstream_response_time_seconds{upstream="example_com"} 5.5', output)
+            assert.matches('nginx_upstream_response_time_seconds_sum{upstream="example_com"} 5.5', output)
+            assert.matches('nginx_upstream_response_time_seconds_count{upstream="example_com"} 10', output)
             -- Label order may vary due to Lua table iteration, so check for both components
             assert.matches('nginx_upstream_server_info{.*server="192.168.1.1:8080"', output)
             assert.matches('nginx_upstream_server_info{.*upstream="example_com"', output)
         end)
 
         it("should format request time metrics", function()
-            mock_stats:set("server_zones:default:request_time", 12.345)
+            mock_stats:set("server_zones:default:request_time_sum", 12.345)
+            mock_stats:set("server_zones:default:request_time_count", 100)
 
             local output = prometheus.format(mock_stats)
 
-            assert.matches('nginx_server_zone_request_time_seconds{zone="default"} 12.345', output)
-            assert.matches('# TYPE nginx_server_zone_request_time_seconds counter', output)
+            assert.matches('nginx_server_zone_request_time_seconds_sum{zone="default"} 12.345', output)
+            assert.matches('nginx_server_zone_request_time_seconds_count{zone="default"} 100', output)
+            assert.matches('# TYPE nginx_server_zone_request_time_seconds_sum counter', output)
         end)
 
         it("should format SSL/TLS protocol metrics", function()
-            mock_stats:set("server_zones:default:ssl:TLSv1.2", 100)
-            mock_stats:set("server_zones:default:ssl:TLSv1.3", 50)
+            mock_stats:set("server_zones:default:ssl:protocol:TLSv1.2", 100)
+            mock_stats:set("server_zones:default:ssl:protocol:TLSv1.3", 50)
 
             local output = prometheus.format(mock_stats)
 
             -- Label order may vary, check for both labels
-            assert.matches('nginx_server_zone_ssl_total{[^}]*zone="default"[^}]*}', output)
-            assert.matches('nginx_server_zone_ssl_total{[^}]*protocol="TLSv1.2"[^}]*} 100', output)
-            assert.matches('nginx_server_zone_ssl_total{[^}]*protocol="TLSv1.3"[^}]*} 50', output)
-            assert.matches('# TYPE nginx_server_zone_ssl_total counter', output)
+            assert.matches('nginx_server_zone_ssl_protocol_total{[^}]*zone="default"[^}]*}', output)
+            assert.matches('nginx_server_zone_ssl_protocol_total{[^}]*protocol="TLSv1.2"[^}]*} 100', output)
+            assert.matches('nginx_server_zone_ssl_protocol_total{[^}]*protocol="TLSv1.3"[^}]*} 50', output)
+            assert.matches('# TYPE nginx_server_zone_ssl_protocol_total counter', output)
         end)
 
         it("should include HELP and TYPE comments", function()
@@ -168,6 +172,86 @@ describe("prometheus module", function()
 
             assert.matches('zone="zone1"', output)
             assert.matches('zone="zone2"', output)
+        end)
+
+        it("should format histogram bucket metrics", function()
+            mock_stats:set("server_zones:default:request_time_bucket:0.01", 50)
+            mock_stats:set("server_zones:default:request_time_bucket:0.1", 80)
+            mock_stats:set("server_zones:default:request_time_bucket:+Inf", 100)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_server_zone_request_time_seconds_bucket{[^}]*le="0.01"[^}]*} 50', output)
+            assert.matches('nginx_server_zone_request_time_seconds_bucket{[^}]*le="0.1"[^}]*} 80', output)
+            assert.matches('nginx_server_zone_request_time_seconds_bucket{[^}]*le="%+Inf"[^}]*} 100', output)
+        end)
+
+        it("should format SSL cipher metrics", function()
+            mock_stats:set("server_zones:default:ssl:cipher:ECDHE-RSA-AES128-GCM-SHA256", 100)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_server_zone_ssl_cipher_total{[^}]*cipher="ECDHE%-RSA%-AES128%-GCM%-SHA256"', output)
+        end)
+
+        it("should format SSL session reuse metrics", function()
+            mock_stats:set("server_zones:default:ssl:session_reused", 80)
+            mock_stats:set("server_zones:default:ssl:session_new", 20)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_server_zone_ssl_sessions_total{[^}]*reused="true"[^}]*} 80', output)
+            assert.matches('nginx_server_zone_ssl_sessions_total{[^}]*reused="false"[^}]*} 20', output)
+        end)
+
+        it("should format rate limit metrics", function()
+            mock_stats:set("server_zones:default:limit_req:passed", 100)
+            mock_stats:set("server_zones:default:limit_req:rejected", 5)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_server_zone_limit_req_total{[^}]*status="passed"[^}]*} 100', output)
+            assert.matches('nginx_server_zone_limit_req_total{[^}]*status="rejected"[^}]*} 5', output)
+        end)
+
+        it("should format upstream failure metrics", function()
+            mock_stats:set("upstreams:backend:failures", 10)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_upstream_failures_total{upstream="backend"} 10', output)
+        end)
+
+        it("should format upstream header time metrics", function()
+            mock_stats:set("upstreams:backend:header_time_sum", 2.5)
+            mock_stats:set("upstreams:backend:header_time_count", 100)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_upstream_header_time_seconds_sum{upstream="backend"} 2.5', output)
+            assert.matches('nginx_upstream_header_time_seconds_count{upstream="backend"} 100', output)
+        end)
+
+        it("should format per-server upstream metrics", function()
+            mock_stats:set("upstreams:backend:servers:192_168_1_1_8080:requests", 50)
+            mock_stats:set("upstreams:backend:servers:192_168_1_1_8080:response_time", 5.5)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_upstream_server_requests_total{[^}]*server="192.168.1.1.8080"', output)
+            assert.matches('nginx_upstream_server_response_time_seconds{[^}]*server="192.168.1.1.8080"', output)
+        end)
+
+        it("should format upstream response time histogram", function()
+            mock_stats:set("upstreams:backend:response_time_bucket:0.05", 30)
+            mock_stats:set("upstreams:backend:response_time_bucket:0.5", 80)
+            mock_stats:set("upstreams:backend:response_time_bucket:+Inf", 100)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_upstream_response_time_seconds_bucket{[^}]*le="0.05"[^}]*} 30', output)
+            assert.matches('nginx_upstream_response_time_seconds_bucket{[^}]*le="0.5"[^}]*} 80', output)
+            assert.matches('nginx_upstream_response_time_seconds_bucket{[^}]*le="%+Inf"[^}]*} 100', output)
         end)
     end)
 end)

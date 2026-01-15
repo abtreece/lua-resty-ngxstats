@@ -69,12 +69,32 @@ local metric_info = {
         help = "Total cache operations per server zone by status",
         type = "counter"
     },
-    ["server_zone_request_time_seconds"] = {
+    ["server_zone_request_time_seconds_sum"] = {
         help = "Total request processing time in seconds per server zone",
         type = "counter"
     },
-    ["server_zone_ssl_total"] = {
+    ["server_zone_request_time_seconds_count"] = {
+        help = "Total number of requests with timing per server zone",
+        type = "counter"
+    },
+    ["server_zone_request_time_seconds_bucket"] = {
+        help = "Request time histogram bucket per server zone",
+        type = "counter"
+    },
+    ["server_zone_ssl_protocol_total"] = {
         help = "Total requests per server zone by SSL/TLS protocol version",
+        type = "counter"
+    },
+    ["server_zone_ssl_cipher_total"] = {
+        help = "Total requests per server zone by SSL/TLS cipher suite",
+        type = "counter"
+    },
+    ["server_zone_ssl_sessions_total"] = {
+        help = "Total SSL sessions per server zone by reuse status",
+        type = "counter"
+    },
+    ["server_zone_limit_req_total"] = {
+        help = "Total rate-limited requests per server zone by status",
         type = "counter"
     },
 
@@ -83,8 +103,28 @@ local metric_info = {
         help = "Total requests to upstream",
         type = "counter"
     },
-    ["upstream_response_time_seconds"] = {
+    ["upstream_failures_total"] = {
+        help = "Total failed upstream requests",
+        type = "counter"
+    },
+    ["upstream_response_time_seconds_sum"] = {
         help = "Total upstream response time in seconds",
+        type = "counter"
+    },
+    ["upstream_response_time_seconds_count"] = {
+        help = "Total number of upstream responses with timing",
+        type = "counter"
+    },
+    ["upstream_response_time_seconds_bucket"] = {
+        help = "Upstream response time histogram bucket",
+        type = "counter"
+    },
+    ["upstream_header_time_seconds_sum"] = {
+        help = "Total upstream time to first byte in seconds",
+        type = "counter"
+    },
+    ["upstream_header_time_seconds_count"] = {
+        help = "Total number of upstream responses with header timing",
         type = "counter"
     },
     ["upstream_queue_time_seconds"] = {
@@ -110,6 +150,14 @@ local metric_info = {
     ["upstream_server_info"] = {
         help = "Current upstream server address (value is always 1)",
         type = "gauge"
+    },
+    ["upstream_server_requests_total"] = {
+        help = "Total requests per upstream server",
+        type = "counter"
+    },
+    ["upstream_server_response_time_seconds"] = {
+        help = "Total response time per upstream server in seconds",
+        type = "counter"
     }
 }
 
@@ -172,14 +220,40 @@ local function parse_metric(key, value)
             metric.name = "nginx_server_zone_cache_total"
             metric.labels.cache_status = parts[4]
             metric.value = value
-        elseif parts[3] == "request_time" then
-            -- Total request processing time
-            metric.name = "nginx_server_zone_request_time_seconds"
+        elseif parts[3] == "request_time_sum" then
+            metric.name = "nginx_server_zone_request_time_seconds_sum"
+            metric.value = value
+        elseif parts[3] == "request_time_count" then
+            metric.name = "nginx_server_zone_request_time_seconds_count"
+            metric.value = value
+        elseif parts[3] == "request_time_bucket" then
+            -- Histogram bucket with le label
+            metric.name = "nginx_server_zone_request_time_seconds_bucket"
+            metric.labels.le = parts[4]
             metric.value = value
         elseif parts[3] == "ssl" then
-            -- SSL/TLS protocol tracking (TLSv1.2, TLSv1.3, etc.)
-            metric.name = "nginx_server_zone_ssl_total"
-            metric.labels.protocol = parts[4]
+            -- SSL/TLS metrics
+            if parts[4] == "protocol" then
+                metric.name = "nginx_server_zone_ssl_protocol_total"
+                metric.labels.protocol = parts[5]
+                metric.value = value
+            elseif parts[4] == "cipher" then
+                metric.name = "nginx_server_zone_ssl_cipher_total"
+                metric.labels.cipher = parts[5]
+                metric.value = value
+            elseif parts[4] == "session_reused" then
+                metric.name = "nginx_server_zone_ssl_sessions_total"
+                metric.labels.reused = "true"
+                metric.value = value
+            elseif parts[4] == "session_new" then
+                metric.name = "nginx_server_zone_ssl_sessions_total"
+                metric.labels.reused = "false"
+                metric.value = value
+            end
+        elseif parts[3] == "limit_req" then
+            -- Rate limiting metrics
+            metric.name = "nginx_server_zone_limit_req_total"
+            metric.labels.status = parts[4]
             metric.value = value
         end
 
@@ -191,8 +265,24 @@ local function parse_metric(key, value)
         if parts[3] == "requests" then
             metric.name = "nginx_upstream_requests_total"
             metric.value = value
-        elseif parts[3] == "response_time" then
-            metric.name = "nginx_upstream_response_time_seconds"
+        elseif parts[3] == "failures" then
+            metric.name = "nginx_upstream_failures_total"
+            metric.value = value
+        elseif parts[3] == "response_time_sum" then
+            metric.name = "nginx_upstream_response_time_seconds_sum"
+            metric.value = value
+        elseif parts[3] == "response_time_count" then
+            metric.name = "nginx_upstream_response_time_seconds_count"
+            metric.value = value
+        elseif parts[3] == "response_time_bucket" then
+            metric.name = "nginx_upstream_response_time_seconds_bucket"
+            metric.labels.le = parts[4]
+            metric.value = value
+        elseif parts[3] == "header_time_sum" then
+            metric.name = "nginx_upstream_header_time_seconds_sum"
+            metric.value = value
+        elseif parts[3] == "header_time_count" then
+            metric.name = "nginx_upstream_header_time_seconds_count"
             metric.value = value
         elseif parts[3] == "queue_time" then
             metric.name = "nginx_upstream_queue_time_seconds"
@@ -210,6 +300,17 @@ local function parse_metric(key, value)
             metric.name = "nginx_upstream_server_info"
             metric.labels.server = tostring(value)
             metric.value = 1  -- Info metric always has value 1
+        elseif parts[3] == "servers" then
+            -- Per-server metrics: upstreams:name:servers:addr:metric
+            local server_addr = parts[4]
+            metric.labels.server = string.gsub(server_addr, "_", ".")
+            if parts[5] == "requests" then
+                metric.name = "nginx_upstream_server_requests_total"
+                metric.value = value
+            elseif parts[5] == "response_time" then
+                metric.name = "nginx_upstream_server_response_time_seconds"
+                metric.value = value
+            end
         elseif parts[3] == "responses" then
             if parts[4] == "total" then
                 metric.name = "nginx_upstream_responses_total"

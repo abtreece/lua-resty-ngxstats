@@ -250,4 +250,42 @@ describe("common module", function()
             assert.equals(42, response.a.b.c.d.e)
         end)
     end)
+
+    describe("record_histogram()", function()
+        it("should increment appropriate bucket counters", function()
+            -- Value of 0.05 should increment 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, +Inf
+            common.record_histogram(mock_stats, "test:bucket", 0.05)
+
+            -- Should NOT increment buckets below the value
+            assert.is_nil(mock_stats:get("test:bucket:0.001"))
+            assert.is_nil(mock_stats:get("test:bucket:0.005"))
+            assert.is_nil(mock_stats:get("test:bucket:0.01"))
+            assert.is_nil(mock_stats:get("test:bucket:0.025"))
+
+            -- Should increment buckets at or above the value
+            assert.equals(1, mock_stats:get("test:bucket:0.05"))
+            assert.equals(1, mock_stats:get("test:bucket:0.1"))
+            assert.equals(1, mock_stats:get("test:bucket:0.25"))
+            assert.equals(1, mock_stats:get("test:bucket:+Inf"))
+        end)
+
+        it("should always increment +Inf bucket", function()
+            common.record_histogram(mock_stats, "test2:bucket", 100)
+
+            -- Value exceeds all buckets, so only +Inf should be incremented
+            assert.is_nil(mock_stats:get("test2:bucket:0.001"))
+            assert.is_nil(mock_stats:get("test2:bucket:10"))
+            assert.equals(1, mock_stats:get("test2:bucket:+Inf"))
+        end)
+
+        it("should use custom buckets when provided", function()
+            local custom_buckets = {1, 5, 10}
+            common.record_histogram(mock_stats, "custom:bucket", 3, custom_buckets)
+
+            assert.is_nil(mock_stats:get("custom:bucket:1"))
+            assert.equals(1, mock_stats:get("custom:bucket:5"))
+            assert.equals(1, mock_stats:get("custom:bucket:10"))
+            assert.equals(1, mock_stats:get("custom:bucket:+Inf"))
+        end)
+    end)
 end)

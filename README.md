@@ -11,8 +11,13 @@ A lightweight Lua library for OpenResty that collects detailed NGINX metrics and
 - **Prometheus Format** - Native Prometheus text exposition format with HELP and TYPE comments
 - **Connection Metrics** - Active, accepted, handled connections with state tracking
 - **Server Zone Metrics** - Per-server request counts, bytes, response codes, HTTP methods
-- **Upstream Metrics** - Request counts, response times, queue times, connect times, bytes transferred
+- **Latency Histograms** - Request time histograms with configurable buckets for percentile calculations
+- **Upstream Metrics** - Request counts, response times, queue times, connect times, header times, bytes transferred
+- **Upstream Failures** - Track failed upstream requests separately
+- **Per-Server Metrics** - Individual upstream server request counts and response times
 - **Cache Metrics** - Hit, miss, bypass, expired, stale cache operations
+- **SSL/TLS Metrics** - Protocol version, cipher suite, and session reuse tracking
+- **Rate Limiting** - Track rate limit passes, delays, and rejections
 - **HTTP Method Tracking** - GET, POST, PUT, DELETE request distribution
 - **Zero Dependencies** - Pure Lua implementation using OpenResty's built-in APIs
 
@@ -120,21 +125,33 @@ scrape_configs:
 | `nginx_server_zone_responses_total` | counter | `zone`, `status` | Responses by status code/class |
 | `nginx_server_zone_methods_total` | counter | `zone`, `method` | Requests by HTTP method |
 | `nginx_server_zone_cache_total` | counter | `zone`, `cache_status` | Cache operations by status |
-| `nginx_server_zone_request_time_seconds` | counter | `zone` | Total request processing time |
-| `nginx_server_zone_ssl_total` | counter | `zone`, `protocol` | Requests by SSL/TLS protocol version |
+| `nginx_server_zone_request_time_seconds_sum` | counter | `zone` | Total request processing time |
+| `nginx_server_zone_request_time_seconds_count` | counter | `zone` | Number of timed requests |
+| `nginx_server_zone_request_time_seconds_bucket` | counter | `zone`, `le` | Request time histogram buckets |
+| `nginx_server_zone_ssl_protocol_total` | counter | `zone`, `protocol` | Requests by SSL/TLS protocol |
+| `nginx_server_zone_ssl_cipher_total` | counter | `zone`, `cipher` | Requests by SSL/TLS cipher |
+| `nginx_server_zone_ssl_sessions_total` | counter | `zone`, `reused` | SSL sessions by reuse status |
+| `nginx_server_zone_limit_req_total` | counter | `zone`, `status` | Rate-limited requests by status |
 
 ### Upstream Metrics
 
 | Metric | Type | Labels | Description |
 |--------|------|--------|-------------|
 | `nginx_upstream_requests_total` | counter | `upstream` | Total upstream requests |
-| `nginx_upstream_response_time_seconds` | counter | `upstream` | Total response time |
+| `nginx_upstream_failures_total` | counter | `upstream` | Failed upstream requests |
+| `nginx_upstream_response_time_seconds_sum` | counter | `upstream` | Total response time |
+| `nginx_upstream_response_time_seconds_count` | counter | `upstream` | Number of timed responses |
+| `nginx_upstream_response_time_seconds_bucket` | counter | `upstream`, `le` | Response time histogram buckets |
+| `nginx_upstream_header_time_seconds_sum` | counter | `upstream` | Total time to first byte |
+| `nginx_upstream_header_time_seconds_count` | counter | `upstream` | Number of header time samples |
 | `nginx_upstream_connect_time_seconds` | counter | `upstream` | Total connect time |
 | `nginx_upstream_queue_time_seconds` | counter | `upstream` | Total queue time |
 | `nginx_upstream_bytes_sent` | counter | `upstream` | Bytes sent to upstream |
 | `nginx_upstream_bytes_received` | counter | `upstream` | Bytes received from upstream |
 | `nginx_upstream_responses_total` | counter | `upstream`, `status` | Responses by status code |
 | `nginx_upstream_server_info` | gauge | `upstream`, `server` | Current upstream server address |
+| `nginx_upstream_server_requests_total` | counter | `upstream`, `server` | Requests per upstream server |
+| `nginx_upstream_server_response_time_seconds` | counter | `upstream`, `server` | Response time per server |
 
 ## Example Output
 
