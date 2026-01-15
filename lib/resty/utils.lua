@@ -1,7 +1,5 @@
 local type          = type
 local pairs         = pairs
-local type          = type
-local pairs         = pairs
 local ipairs        = ipairs
 local select        = select
 local tostring      = tostring
