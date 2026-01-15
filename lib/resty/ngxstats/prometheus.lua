@@ -69,6 +69,14 @@ local metric_info = {
         help = "Total cache operations per server zone by status",
         type = "counter"
     },
+    ["server_zone_request_time_seconds"] = {
+        help = "Total request processing time in seconds per server zone",
+        type = "counter"
+    },
+    ["server_zone_ssl_total"] = {
+        help = "Total requests per server zone by SSL/TLS protocol version",
+        type = "counter"
+    },
 
     -- Upstream metrics
     ["upstream_requests_total"] = {
@@ -163,6 +171,15 @@ local function parse_metric(key, value)
             -- Cache status tracking (hit, miss, expired, etc.)
             metric.name = "nginx_server_zone_cache_total"
             metric.labels.cache_status = parts[4]
+            metric.value = value
+        elseif parts[3] == "request_time" then
+            -- Total request processing time
+            metric.name = "nginx_server_zone_request_time_seconds"
+            metric.value = value
+        elseif parts[3] == "ssl" then
+            -- SSL/TLS protocol tracking (TLSv1.2, TLSv1.3, etc.)
+            metric.name = "nginx_server_zone_ssl_total"
+            metric.labels.protocol = parts[4]
             metric.value = value
         end
 

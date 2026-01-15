@@ -23,6 +23,10 @@ function _M.run()
     local upstream_response_time = common.safe_tonumber(ngx.var.upstream_response_time)
     local upstream_queue_time = common.safe_tonumber(ngx.var.upstream_queue_time)
     local upstream_connect_time = common.safe_tonumber(ngx.var.upstream_connect_time)
+    local request_time = common.safe_tonumber(ngx.var.request_time)
+
+    -- SSL/TLS info (nil if not HTTPS)
+    local ssl_protocol = ngx.var.ssl_protocol
 
     -- Set default group, if it's not defined
     if group == "_" or group == "" then
@@ -50,6 +54,16 @@ function _M.run()
 
     -- Request method tracking
     common.incr_or_create(stats, common.key({'server_zones', group, 'methods', request_method}), 1)
+
+    -- Request timing
+    if request_time and request_time > 0 then
+        common.incr_or_create(stats, common.key({'server_zones', group, 'request_time'}), request_time)
+    end
+
+    -- SSL/TLS metrics
+    if ssl_protocol then
+        common.incr_or_create(stats, common.key({'server_zones', group, 'ssl', ssl_protocol}), 1)
+    end
 
     -- UPSTREAM
     if upstream_response_time then

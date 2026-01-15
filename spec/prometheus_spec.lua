@@ -112,6 +112,28 @@ describe("prometheus module", function()
             assert.matches('nginx_upstream_server_info{.*upstream="example_com"', output)
         end)
 
+        it("should format request time metrics", function()
+            mock_stats:set("server_zones:default:request_time", 12.345)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_server_zone_request_time_seconds{zone="default"} 12.345', output)
+            assert.matches('# TYPE nginx_server_zone_request_time_seconds counter', output)
+        end)
+
+        it("should format SSL/TLS protocol metrics", function()
+            mock_stats:set("server_zones:default:ssl:TLSv1.2", 100)
+            mock_stats:set("server_zones:default:ssl:TLSv1.3", 50)
+
+            local output = prometheus.format(mock_stats)
+
+            -- Label order may vary, check for both labels
+            assert.matches('nginx_server_zone_ssl_total{[^}]*zone="default"[^}]*}', output)
+            assert.matches('nginx_server_zone_ssl_total{[^}]*protocol="TLSv1.2"[^}]*} 100', output)
+            assert.matches('nginx_server_zone_ssl_total{[^}]*protocol="TLSv1.3"[^}]*} 50', output)
+            assert.matches('# TYPE nginx_server_zone_ssl_total counter', output)
+        end)
+
         it("should include HELP and TYPE comments", function()
             mock_stats:set("connections:active", 5)
 

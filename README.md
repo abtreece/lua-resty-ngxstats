@@ -120,6 +120,8 @@ scrape_configs:
 | `nginx_server_zone_responses_total` | counter | `zone`, `status` | Responses by status code/class |
 | `nginx_server_zone_methods_total` | counter | `zone`, `method` | Requests by HTTP method |
 | `nginx_server_zone_cache_total` | counter | `zone`, `cache_status` | Cache operations by status |
+| `nginx_server_zone_request_time_seconds` | counter | `zone` | Total request processing time |
+| `nginx_server_zone_ssl_total` | counter | `zone`, `protocol` | Requests by SSL/TLS protocol version |
 
 ### Upstream Metrics
 
