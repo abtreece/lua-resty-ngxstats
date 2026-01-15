@@ -22,6 +22,7 @@ end
 function _M.run()
     ngx.update_time()
     local stats = ngx.shared.ngx_stats
+    local cache_status = package.loaded['stats.cache_status']
 
     -- Validate and safely convert input values
     local status = safe_tostring(ngx.status, "0")
@@ -29,6 +30,8 @@ function _M.run()
     local proxy_host = safe_tostring(ngx.var.proxy_host, "")
     local upstream_status = safe_tostring(ngx.var.upstream_status, "0")
     local server_name = safe_tostring(ngx.var.server_name, "")
+    local request_method = safe_tostring(ngx.req.get_method(), "GET")
+    local upstream_cache_status = ngx.var.upstream_cache_status
 
     local upstream_name = string.gsub(proxy_host, "%.", "_")
     local group = string.gsub(server_name, "%.", "_")
@@ -59,6 +62,9 @@ function _M.run()
     common.incr_or_create(stats, common.key({'server_zones', group, 'responses', status}), 1)
     common.incr_or_create(stats, common.key({'server_zones', group, 'responses', 'total'}), 1)
 
+    -- Request method tracking
+    common.incr_or_create(stats, common.key({'server_zones', group, 'methods', request_method}), 1)
+
     -- UPSTREAM
     if upstream_response_time then
         common.incr_or_create(stats, common.key({'upstreams', upstream_name, 'requests'}), 1)
@@ -74,10 +80,10 @@ function _M.run()
     end
 
     -- CACHE
-    --if common.in_table(ngx.var.upstream_cache_status, cache_status) then
-    --    local status = string.lower(ngx.var.upstream_cache_status)
-    --    common.incr_or_create(stats, common.key({'server_zones', group, 'cache', status}), 1)
-    --end
+    if upstream_cache_status and cache_status and common.in_table(upstream_cache_status, cache_status) then
+        local cache_status_lower = string.lower(upstream_cache_status)
+        common.incr_or_create(stats, common.key({'server_zones', group, 'cache', cache_status_lower}), 1)
+    end
 end
 
 -- Execute when loaded as a script

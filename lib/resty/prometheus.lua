@@ -61,6 +61,14 @@ local metric_info = {
         help = "Total responses per server zone by status code",
         type = "counter"
     },
+    ["server_zone_methods_total"] = {
+        help = "Total requests per server zone by HTTP method",
+        type = "counter"
+    },
+    ["server_zone_cache_total"] = {
+        help = "Total cache operations per server zone by status",
+        type = "counter"
+    },
 
     -- Upstream metrics
     ["upstream_requests_total"] = {
@@ -146,6 +154,16 @@ local function parse_metric(key, value)
                 metric.labels.status = parts[4]
                 metric.value = value
             end
+        elseif parts[3] == "methods" then
+            -- HTTP method tracking (GET, POST, etc.)
+            metric.name = "nginx_server_zone_methods_total"
+            metric.labels.method = parts[4]
+            metric.value = value
+        elseif parts[3] == "cache" then
+            -- Cache status tracking (hit, miss, expired, etc.)
+            metric.name = "nginx_server_zone_cache_total"
+            metric.labels.cache_status = parts[4]
+            metric.value = value
         end
 
     -- Upstream metrics
