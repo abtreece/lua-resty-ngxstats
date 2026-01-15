@@ -217,8 +217,8 @@ end)
 
 ## Adding New Metrics
 
-1. Update `lib/resty/log.lua` to collect the metric
-2. Update `lib/resty/prometheus.lua` to format it
+1. Update `lib/resty/ngxstats/log.lua` to collect the metric
+2. Update `lib/resty/ngxstats/prometheus.lua` to format it
 3. Add metadata to `metric_info` table in prometheus.lua
 4. Write tests in `spec/prometheus_spec.lua`
 5. Update README.md metrics table

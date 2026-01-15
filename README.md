@@ -46,16 +46,16 @@ cp -r lib/resty /path/to/openresty/lualib/stats
 http {
     # Shared memory for metrics storage (10MB)
     lua_shared_dict ngx_stats 10m;
-    lua_package_path '/etc/nginx/lua/?.lua;;';
+    lua_package_path '/etc/nginx/lua/?.lua;/etc/nginx/lua/?/init.lua;;';
 
     # Initialize on startup
-    init_by_lua_file /etc/nginx/lua/stats/init.lua;
+    init_by_lua_file /etc/nginx/lua/resty/ngxstats/init.lua;
 
     server {
         listen 80;
 
         # Collect metrics for all requests
-        log_by_lua_file /etc/nginx/lua/stats/log.lua;
+        log_by_lua_file /etc/nginx/lua/resty/ngxstats/log.lua;
 
         location / {
             proxy_pass http://backend;
@@ -67,8 +67,8 @@ http {
         listen 8080;
 
         location /status {
-            access_by_lua_file /etc/nginx/lua/stats/status.lua;
-            content_by_lua_file /etc/nginx/lua/stats/show.lua;
+            access_by_lua_file /etc/nginx/lua/resty/ngxstats/status.lua;
+            content_by_lua_file /etc/nginx/lua/resty/ngxstats/show.lua;
         }
     }
 }

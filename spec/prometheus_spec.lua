@@ -1,5 +1,5 @@
 --[[
-  Unit tests for lib/resty/prometheus.lua
+  Unit tests for lib/resty/ngxstats/prometheus.lua
 ]]--
 
 describe("prometheus module", function()
@@ -8,10 +8,10 @@ describe("prometheus module", function()
     local mock_stats
 
     before_each(function()
-        package.loaded['stats.prometheus'] = nil
-        package.loaded['stats.common'] = nil
+        package.loaded['resty.ngxstats.prometheus'] = nil
+        package.loaded['resty.ngxstats.common'] = nil
         helpers = require "spec.helpers"
-        prometheus = require "stats.prometheus"
+        prometheus = require "resty.ngxstats.prometheus"
         mock_stats = helpers.mock_shared_dict()
     end)
 
@@ -66,11 +66,12 @@ describe("prometheus module", function()
 
             local output = prometheus.format(mock_stats)
 
-            -- Label order may vary due to Lua table iteration, check for both label components
-            assert.matches('nginx_server_zone_responses_total{.*zone="default".*status="200"', output)
-            assert.matches('nginx_server_zone_responses_total{.*zone="default".*status="404"', output)
-            assert.matches('nginx_server_zone_responses_total{.*zone="default".*status="2xx"', output)
-            assert.matches('nginx_server_zone_responses_total{.*zone="default".*status="4xx"', output)
+            -- Label order may vary due to Lua table iteration, check that both labels exist
+            assert.matches('nginx_server_zone_responses_total{[^}]*zone="default"[^}]*}', output)
+            assert.matches('nginx_server_zone_responses_total{[^}]*status="200"[^}]*} 50', output)
+            assert.matches('nginx_server_zone_responses_total{[^}]*status="404"[^}]*} 5', output)
+            assert.matches('nginx_server_zone_responses_total{[^}]*status="2xx"[^}]*} 50', output)
+            assert.matches('nginx_server_zone_responses_total{[^}]*status="4xx"[^}]*} 5', output)
         end)
 
         it("should format method metrics", function()
@@ -79,11 +80,10 @@ describe("prometheus module", function()
 
             local output = prometheus.format(mock_stats)
 
-            -- Label order may vary due to Lua table iteration, check for both label components
-            assert.matches('nginx_server_zone_methods_total{.*zone="default".*method="GET"', output)
-            assert.matches('nginx_server_zone_methods_total{.*zone="default".*method="POST"', output)
-            assert.matches('} 80', output)
-            assert.matches('} 20', output)
+            -- Label order may vary due to Lua table iteration, check that both labels exist
+            assert.matches('nginx_server_zone_methods_total{[^}]*zone="default"[^}]*}', output)
+            assert.matches('nginx_server_zone_methods_total{[^}]*method="GET"[^}]*} 80', output)
+            assert.matches('nginx_server_zone_methods_total{[^}]*method="POST"[^}]*} 20', output)
         end)
 
         it("should format cache metrics", function()
@@ -92,11 +92,10 @@ describe("prometheus module", function()
 
             local output = prometheus.format(mock_stats)
 
-            -- Label order may vary due to Lua table iteration, check for both label components
-            assert.matches('nginx_server_zone_cache_total{.*zone="default".*cache_status="hit"', output)
-            assert.matches('nginx_server_zone_cache_total{.*zone="default".*cache_status="miss"', output)
-            assert.matches('} 100', output)
-            assert.matches('} 20', output)
+            -- Label order may vary due to Lua table iteration, check that both labels exist
+            assert.matches('nginx_server_zone_cache_total{[^}]*zone="default"[^}]*}', output)
+            assert.matches('nginx_server_zone_cache_total{[^}]*cache_status="hit"[^}]*} 100', output)
+            assert.matches('nginx_server_zone_cache_total{[^}]*cache_status="miss"[^}]*} 20', output)
         end)
 
         it("should format upstream metrics with labels", function()

@@ -1,11 +1,11 @@
 local _M = {}
 
-local common = require "stats.common"
+local common = require "resty.ngxstats.common"
 
 function _M.run()
     ngx.update_time()
     local stats = ngx.shared.ngx_stats
-    local cache_status = package.loaded['stats.cache_status']
+    local cache_status = package.loaded['resty.ngxstats.cache_status']
 
     -- Validate and safely convert input values
     local status = common.safe_tostring(ngx.status, "0")
