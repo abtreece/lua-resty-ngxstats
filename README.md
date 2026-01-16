@@ -107,6 +107,26 @@ The dashboard includes:
 - **Connection metrics** - Connection states, accepted/handled rate
 - **SSL/TLS & Rate limiting** - Protocol distribution, session reuse, rate limit status
 
+### 5. Configure Alerting (Optional)
+
+Use the pre-built alerting rules from `examples/prometheus-alerts.yml`:
+
+```yaml
+rule_files:
+  - "prometheus-alerts.yml"
+```
+
+Included alert groups:
+- **Availability** - NGINX down, no requests received
+- **Errors** - High 5xx/4xx error rates
+- **Latency** - High p99 latency, elevated average latency
+- **Upstream** - Failures, high error rate, high latency
+- **Connections** - High active connections, unhandled connections
+- **Cache** - Low hit rate, high bypass rate
+- **Rate Limiting** - High rejection rate
+- **SSL/TLS** - Low session reuse, deprecated protocol usage
+- **Traffic** - Spikes, drops, high bandwidth
+
 ## Metrics Exposed
 
 ### Connection Metrics

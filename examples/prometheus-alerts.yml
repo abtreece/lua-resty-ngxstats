@@ -1,0 +1,329 @@
+# Prometheus Alerting Rules for lua-resty-ngxstats
+#
+# These rules provide production-ready alerts for NGINX monitoring.
+# Adjust thresholds based on your application's requirements.
+#
+# Usage:
+#   1. Copy this file to your Prometheus rules directory
+#   2. Update prometheus.yml to include: rule_files: ["prometheus-alerts.yml"]
+#   3. Reload Prometheus configuration
+
+groups:
+  - name: nginx_availability
+    rules:
+      # NGINX instance is down
+      - alert: NginxDown
+        expr: up{job="nginx"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NGINX instance is down"
+          description: "NGINX instance {{ $labels.instance }} has been down for more than 1 minute."
+
+      # No requests received (possible routing/DNS issue)
+      - alert: NginxNoRequests
+        expr: rate(nginx_requests_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NGINX receiving no requests"
+          description: "NGINX instance {{ $labels.instance }} has received no requests for 5 minutes."
+
+  - name: nginx_errors
+    rules:
+      # High 5xx error rate (critical)
+      - alert: NginxHighErrorRate
+        expr: |
+          (
+            sum(rate(nginx_server_zone_responses_total{status="5xx"}[5m])) by (instance, zone)
+            /
+            sum(rate(nginx_server_zone_responses_total[5m])) by (instance, zone)
+          ) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate on NGINX"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} has {{ printf \"%.2f\" $value }}% 5xx error rate."
+
+      # Elevated 5xx error rate (warning)
+      - alert: NginxElevatedErrorRate
+        expr: |
+          (
+            sum(rate(nginx_server_zone_responses_total{status="5xx"}[5m])) by (instance, zone)
+            /
+            sum(rate(nginx_server_zone_responses_total[5m])) by (instance, zone)
+          ) * 100 > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated 5xx error rate on NGINX"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} has {{ printf \"%.2f\" $value }}% 5xx error rate."
+
+      # High 4xx error rate (may indicate client issues or attacks)
+      - alert: NginxHigh4xxRate
+        expr: |
+          (
+            sum(rate(nginx_server_zone_responses_total{status="4xx"}[5m])) by (instance, zone)
+            /
+            sum(rate(nginx_server_zone_responses_total[5m])) by (instance, zone)
+          ) * 100 > 25
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 4xx error rate on NGINX"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} has {{ printf \"%.2f\" $value }}% 4xx error rate."
+
+  - name: nginx_latency
+    rules:
+      # High p99 latency (critical)
+      - alert: NginxHighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(nginx_server_zone_request_time_seconds_bucket[5m])) by (instance, zone, le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High p99 latency on NGINX"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} has p99 latency of {{ printf \"%.2f\" $value }}s."
+
+      # Elevated p99 latency (warning)
+      - alert: NginxElevatedLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(nginx_server_zone_request_time_seconds_bucket[5m])) by (instance, zone, le)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated p99 latency on NGINX"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} has p99 latency of {{ printf \"%.2f\" $value }}s."
+
+      # High average latency
+      - alert: NginxHighAverageLatency
+        expr: |
+          (
+            sum(rate(nginx_server_zone_request_time_seconds_sum[5m])) by (instance, zone)
+            /
+            sum(rate(nginx_server_zone_request_time_seconds_count[5m])) by (instance, zone)
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High average latency on NGINX"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} has average latency of {{ printf \"%.3f\" $value }}s."
+
+  - name: nginx_upstream
+    rules:
+      # Upstream failures spike
+      - alert: NginxUpstreamFailures
+        expr: rate(nginx_upstream_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NGINX upstream failures detected"
+          description: "Upstream {{ $labels.upstream }} on {{ $labels.instance }} is experiencing {{ printf \"%.2f\" $value }} failures/sec."
+
+      # Upstream high error rate
+      - alert: NginxUpstreamHighErrorRate
+        expr: |
+          (
+            sum(rate(nginx_upstream_responses_total{status="5xx"}[5m])) by (instance, upstream)
+            /
+            sum(rate(nginx_upstream_responses_total[5m])) by (instance, upstream)
+          ) * 100 > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High upstream error rate"
+          description: "Upstream {{ $labels.upstream }} on {{ $labels.instance }} has {{ printf \"%.2f\" $value }}% 5xx error rate."
+
+      # Upstream high latency
+      - alert: NginxUpstreamHighLatency
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(nginx_upstream_response_time_seconds_bucket[5m])) by (instance, upstream, le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High upstream latency"
+          description: "Upstream {{ $labels.upstream }} on {{ $labels.instance }} has p99 latency of {{ printf \"%.2f\" $value }}s."
+
+      # Upstream no requests (backend may be unhealthy)
+      - alert: NginxUpstreamNoRequests
+        expr: |
+          rate(nginx_upstream_requests_total[5m]) == 0
+          and
+          rate(nginx_requests_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No requests reaching upstream"
+          description: "Upstream {{ $labels.upstream }} on {{ $labels.instance }} is receiving no requests while NGINX is receiving traffic."
+
+  - name: nginx_connections
+    rules:
+      # High active connections (approaching limits)
+      - alert: NginxHighConnections
+        expr: nginx_connections_active > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of active connections"
+          description: "NGINX {{ $labels.instance }} has {{ $value }} active connections."
+
+      # Connection handling issues
+      - alert: NginxConnectionsNotHandled
+        expr: |
+          (nginx_connections_accepted - nginx_connections_handled) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "NGINX not handling all connections"
+          description: "NGINX {{ $labels.instance }} has {{ $value }} unhandled connections."
+
+  - name: nginx_cache
+    rules:
+      # Low cache hit rate
+      - alert: NginxLowCacheHitRate
+        expr: |
+          (
+            sum(rate(nginx_server_zone_cache_total{cache_status="hit"}[5m])) by (instance, zone)
+            /
+            sum(rate(nginx_server_zone_cache_total[5m])) by (instance, zone)
+          ) * 100 < 50
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low cache hit rate"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} has only {{ printf \"%.1f\" $value }}% cache hit rate."
+
+      # Cache bypass spike (may indicate cache invalidation issues)
+      - alert: NginxHighCacheBypass
+        expr: |
+          (
+            sum(rate(nginx_server_zone_cache_total{cache_status="bypass"}[5m])) by (instance, zone)
+            /
+            sum(rate(nginx_server_zone_cache_total[5m])) by (instance, zone)
+          ) * 100 > 30
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High cache bypass rate"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} has {{ printf \"%.1f\" $value }}% cache bypass rate."
+
+  - name: nginx_rate_limiting
+    rules:
+      # High rate of rejected requests
+      - alert: NginxHighRateLimitRejections
+        expr: |
+          (
+            sum(rate(nginx_server_zone_limit_req_total{status="rejected"}[5m])) by (instance, zone)
+            /
+            sum(rate(nginx_server_zone_limit_req_total[5m])) by (instance, zone)
+          ) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High rate limit rejection rate"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} is rejecting {{ printf \"%.1f\" $value }}% of requests due to rate limiting."
+
+      # Rate limiting triggered (informational)
+      - alert: NginxRateLimitingActive
+        expr: rate(nginx_server_zone_limit_req_total{status="rejected"}[5m]) > 1
+        for: 2m
+        labels:
+          severity: info
+        annotations:
+          summary: "Rate limiting is active"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} is rate limiting {{ printf \"%.2f\" $value }} requests/sec."
+
+  - name: nginx_ssl
+    rules:
+      # Low SSL session reuse (performance issue)
+      - alert: NginxLowSSLSessionReuse
+        expr: |
+          (
+            sum(rate(nginx_server_zone_ssl_sessions_total{reused="true"}[5m])) by (instance, zone)
+            /
+            sum(rate(nginx_server_zone_ssl_sessions_total[5m])) by (instance, zone)
+          ) * 100 < 50
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low SSL session reuse rate"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} has only {{ printf \"%.1f\" $value }}% SSL session reuse rate."
+
+      # TLS 1.0/1.1 usage (deprecated protocols)
+      - alert: NginxDeprecatedTLSProtocol
+        expr: |
+          rate(nginx_server_zone_ssl_protocol_total{protocol=~"TLSv1|TLSv1.1"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Deprecated TLS protocol in use"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} is receiving requests using deprecated {{ $labels.protocol }}."
+
+  - name: nginx_traffic
+    rules:
+      # Traffic spike (sudden increase)
+      - alert: NginxTrafficSpike
+        expr: |
+          (
+            rate(nginx_requests_total[5m])
+            /
+            rate(nginx_requests_total[1h] offset 5m)
+          ) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Traffic spike detected"
+          description: "NGINX {{ $labels.instance }} is receiving {{ printf \"%.1f\" $value }}x more traffic than the hourly average."
+
+      # Traffic drop (possible issue)
+      - alert: NginxTrafficDrop
+        expr: |
+          (
+            rate(nginx_requests_total[5m])
+            /
+            rate(nginx_requests_total[1h] offset 5m)
+          ) < 0.3
+          and
+          rate(nginx_requests_total[1h] offset 5m) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Significant traffic drop detected"
+          description: "NGINX {{ $labels.instance }} traffic dropped to {{ printf \"%.0f\" (mulf $value 100) }}% of the hourly average."
+
+      # High bandwidth usage
+      - alert: NginxHighBandwidth
+        expr: rate(nginx_server_zone_bytes_sent[5m]) > 100000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High bandwidth usage"
+          description: "NGINX zone {{ $labels.zone }} on {{ $labels.instance }} is sending {{ humanize $value }}B/s."
