@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-01-15
+
 ### Added
 - **Slow request tracking** - `nginx_server_zone_slow_requests_total` counts requests exceeding configurable threshold (default 1s)
 - **Request size histogram** - `nginx_server_zone_request_length_bytes_bucket` tracks request body size distribution with buckets from 100B to 100MB
@@ -107,6 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Performance characteristics
 - Comparison with nginx-module-vts and NGINX Plus
 
-[Unreleased]: https://github.com/abtreece/lua-resty-ngxstats/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/abtreece/lua-resty-ngxstats/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/abtreece/lua-resty-ngxstats/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/abtreece/lua-resty-ngxstats/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/abtreece/lua-resty-ngxstats/releases/tag/v1.0.0
