@@ -1,0 +1,356 @@
+{
+  "_comment": "Datadog Monitors for lua-resty-ngxstats. Import via API or Terraform.",
+  "monitors": [
+    {
+      "name": "[NGINX] Instance Down",
+      "type": "service check",
+      "query": "\"openmetrics.health\".over(\"endpoint:nginx_status\").by(\"host\").last(2).count_by_status()",
+      "message": "NGINX instance {{host.name}} is not responding to health checks.\n\nThis could indicate:\n- NGINX process crashed\n- Network connectivity issues\n- Metrics endpoint unavailable\n\n@pagerduty-nginx",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 1,
+      "options": {
+        "thresholds": {
+          "critical": 1,
+          "warning": 1,
+          "ok": 1
+        },
+        "notify_no_data": true,
+        "no_data_timeframe": 5,
+        "notify_audit": false,
+        "renotify_interval": 10
+      }
+    },
+    {
+      "name": "[NGINX] No Requests Received",
+      "type": "query alert",
+      "query": "sum(last_5m):sum:nginx.nginx_requests_total{*}.as_rate() == 0",
+      "message": "NGINX is receiving no requests for the past 5 minutes.\n\nThis could indicate:\n- DNS or routing issues\n- Upstream load balancer problems\n- Network connectivity issues\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 0
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] High 5xx Error Rate",
+      "type": "query alert",
+      "query": "sum(last_5m):( sum:nginx.nginx_server_zone_responses_total{status:5xx}.as_rate() / sum:nginx.nginx_server_zone_responses_total{*}.as_rate() ) * 100 > 5",
+      "message": "NGINX 5xx error rate is above 5%.\n\nCurrent error rate: {{value}}%\nZone: {{zone.name}}\n\nPossible causes:\n- Backend service failures\n- Resource exhaustion\n- Application errors\n\n@pagerduty-nginx",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 1,
+      "options": {
+        "thresholds": {
+          "critical": 5,
+          "warning": 1
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 10,
+        "evaluation_delay": 60
+      }
+    },
+    {
+      "name": "[NGINX] High 4xx Error Rate",
+      "type": "query alert",
+      "query": "sum(last_5m):( sum:nginx.nginx_server_zone_responses_total{status:4xx}.as_rate() / sum:nginx.nginx_server_zone_responses_total{*}.as_rate() ) * 100 > 25",
+      "message": "NGINX 4xx error rate is above 25%.\n\nCurrent error rate: {{value}}%\nZone: {{zone.name}}\n\nPossible causes:\n- Client-side issues\n- Invalid requests\n- Potential attack or bot traffic\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 25
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] High Average Latency",
+      "type": "query alert",
+      "query": "avg(last_5m):( sum:nginx.nginx_server_zone_request_time_seconds_sum{*}.as_rate() / sum:nginx.nginx_server_zone_request_time_seconds_count{*}.as_rate() ) > 0.5",
+      "message": "NGINX average request latency is above 500ms.\n\nCurrent latency: {{value}}s\nZone: {{zone.name}}\n\nPossible causes:\n- Slow backend responses\n- Resource contention\n- Network latency\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 1,
+          "warning": 0.5
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] High Slow Request Rate",
+      "type": "query alert",
+      "query": "sum(last_5m):sum:nginx.nginx_server_zone_slow_requests_total{*}.as_rate() > 10",
+      "message": "NGINX is experiencing a high rate of slow requests (>1s).\n\nCurrent rate: {{value}} slow requests/sec\nZone: {{zone.name}}\n\nThese requests exceeded the 1 second threshold.\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 10,
+          "warning": 5
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] Upstream Failures",
+      "type": "query alert",
+      "query": "sum(last_5m):sum:nginx.nginx_upstream_failures_total{*} by {upstream}.as_rate() > 0.1",
+      "message": "NGINX upstream is experiencing failures.\n\nUpstream: {{upstream.name}}\nFailure rate: {{value}} failures/sec\n\nPossible causes:\n- Backend service down\n- Connection timeouts\n- Health check failures\n\n@pagerduty-nginx",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 1,
+      "options": {
+        "thresholds": {
+          "critical": 0.1
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 10
+      }
+    },
+    {
+      "name": "[NGINX] Upstream High Error Rate",
+      "type": "query alert",
+      "query": "sum(last_5m):( sum:nginx.nginx_upstream_responses_total{status:5xx} by {upstream}.as_rate() / sum:nginx.nginx_upstream_responses_total{*} by {upstream}.as_rate() ) * 100 > 5",
+      "message": "NGINX upstream has high 5xx error rate.\n\nUpstream: {{upstream.name}}\nError rate: {{value}}%\n\nBackend service may be experiencing issues.\n\n@pagerduty-nginx",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 1,
+      "options": {
+        "thresholds": {
+          "critical": 5,
+          "warning": 2
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 10
+      }
+    },
+    {
+      "name": "[NGINX] Upstream High Latency",
+      "type": "query alert",
+      "query": "avg(last_5m):( sum:nginx.nginx_upstream_response_time_seconds_sum{*} by {upstream}.as_rate() / sum:nginx.nginx_upstream_response_time_seconds_count{*} by {upstream}.as_rate() ) > 2",
+      "message": "NGINX upstream response time is high.\n\nUpstream: {{upstream.name}}\nAverage latency: {{value}}s\n\nBackend performance degradation detected.\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 2,
+          "warning": 1
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] Upstream Unhealthy",
+      "type": "query alert",
+      "query": "avg(last_5m):avg:nginx.nginx_upstream_health{*} by {upstream} < 1",
+      "message": "NGINX upstream is marked as unhealthy.\n\nUpstream: {{upstream.name}}\nHealth status: {{value}}\n\nThe upstream failure rate has exceeded the health threshold.\n\n@pagerduty-nginx",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 1,
+      "options": {
+        "thresholds": {
+          "critical": 1
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 10
+      }
+    },
+    {
+      "name": "[NGINX] High Active Connections",
+      "type": "query alert",
+      "query": "avg(last_5m):avg:nginx.nginx_connections_active{*} by {host} > 1000",
+      "message": "NGINX has a high number of active connections.\n\nHost: {{host.name}}\nActive connections: {{value}}\n\nThis may indicate:\n- Traffic spike\n- Slow backend responses causing connection buildup\n- Connection leak\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 5000,
+          "warning": 1000
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] Connections Not Handled",
+      "type": "query alert",
+      "query": "avg(last_5m):( avg:nginx.nginx_connections_accepted{*} - avg:nginx.nginx_connections_handled{*} ) > 0",
+      "message": "NGINX is not handling all accepted connections.\n\nUnhandled connections: {{value}}\n\nThis indicates NGINX is dropping connections, possibly due to:\n- Worker connection limit reached\n- Resource exhaustion\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 100,
+          "warning": 1
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] Low Cache Hit Rate",
+      "type": "query alert",
+      "query": "avg(last_15m):( sum:nginx.nginx_server_zone_cache_total{cache_status:hit}.as_rate() / sum:nginx.nginx_server_zone_cache_total{*}.as_rate() ) * 100 < 50",
+      "message": "NGINX cache hit rate is below 50%.\n\nCurrent hit rate: {{value}}%\nZone: {{zone.name}}\n\nPossible causes:\n- Cache configuration issues\n- High cache churn\n- Cache size too small\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 3,
+      "options": {
+        "thresholds": {
+          "warning": 50
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 60
+      }
+    },
+    {
+      "name": "[NGINX] High Cache Bypass Rate",
+      "type": "query alert",
+      "query": "avg(last_10m):( sum:nginx.nginx_server_zone_cache_total{cache_status:bypass}.as_rate() / sum:nginx.nginx_server_zone_cache_total{*}.as_rate() ) * 100 > 30",
+      "message": "NGINX cache bypass rate is above 30%.\n\nCurrent bypass rate: {{value}}%\nZone: {{zone.name}}\n\nMany requests are bypassing the cache, which may increase backend load.\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 3,
+      "options": {
+        "thresholds": {
+          "warning": 30
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 60
+      }
+    },
+    {
+      "name": "[NGINX] High Rate Limit Rejections",
+      "type": "query alert",
+      "query": "avg(last_5m):( sum:nginx.nginx_server_zone_limit_req_total{status:rejected}.as_rate() / sum:nginx.nginx_server_zone_limit_req_total{*}.as_rate() ) * 100 > 10",
+      "message": "NGINX is rejecting more than 10% of requests due to rate limiting.\n\nRejection rate: {{value}}%\nZone: {{zone.name}}\n\nThis may indicate:\n- Traffic spike or attack\n- Rate limits too aggressive\n- Misbehaving client\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 25,
+          "warning": 10
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] Rate Limiting Active",
+      "type": "query alert",
+      "query": "sum(last_5m):sum:nginx.nginx_server_zone_limit_req_total{status:rejected}.as_rate() > 1",
+      "message": "NGINX rate limiting is actively rejecting requests.\n\nRejection rate: {{value}} requests/sec\nZone: {{zone.name}}\n\nThis is informational - rate limiting is working as expected.\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 4,
+      "options": {
+        "thresholds": {
+          "warning": 1
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 120
+      }
+    },
+    {
+      "name": "[NGINX] Low SSL Session Reuse",
+      "type": "query alert",
+      "query": "avg(last_15m):( sum:nginx.nginx_server_zone_ssl_sessions_total{reused:true}.as_rate() / sum:nginx.nginx_server_zone_ssl_sessions_total{*}.as_rate() ) * 100 < 50",
+      "message": "NGINX SSL session reuse rate is below 50%.\n\nCurrent reuse rate: {{value}}%\nZone: {{zone.name}}\n\nLow session reuse increases SSL handshake overhead and latency.\n\nPossible causes:\n- SSL session cache too small\n- Session timeout too short\n- Client-side issues\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 3,
+      "options": {
+        "thresholds": {
+          "warning": 50
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 60
+      }
+    },
+    {
+      "name": "[NGINX] Deprecated TLS Protocol",
+      "type": "query alert",
+      "query": "sum(last_5m):sum:nginx.nginx_server_zone_ssl_protocol_total{protocol:tlsv1}.as_rate() + sum:nginx.nginx_server_zone_ssl_protocol_total{protocol:tlsv1.1}.as_rate() > 0",
+      "message": "NGINX is receiving requests using deprecated TLS 1.0 or 1.1 protocols.\n\nThese protocols have known security vulnerabilities and should be disabled.\n\nConsider:\n- Updating ssl_protocols directive\n- Notifying clients to upgrade\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure", "security"],
+      "priority": 3,
+      "options": {
+        "thresholds": {
+          "warning": 0
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 1440
+      }
+    },
+    {
+      "name": "[NGINX] Traffic Spike",
+      "type": "query alert",
+      "query": "pct_change(avg(last_5m),last_1h):sum:nginx.nginx_requests_total{*}.as_rate() > 200",
+      "message": "NGINX is receiving significantly more traffic than the hourly average.\n\nTraffic increase: {{value}}%\n\nThis could indicate:\n- Legitimate traffic spike\n- Marketing campaign\n- Potential DDoS attack\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": 300,
+          "warning": 200
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] Traffic Drop",
+      "type": "query alert",
+      "query": "pct_change(avg(last_5m),last_1h):sum:nginx.nginx_requests_total{*}.as_rate() < -70",
+      "message": "NGINX traffic has dropped significantly compared to the hourly average.\n\nTraffic decrease: {{value}}%\n\nThis could indicate:\n- Upstream issues\n- DNS problems\n- Network connectivity issues\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 2,
+      "options": {
+        "thresholds": {
+          "critical": -90,
+          "warning": -70
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 30
+      }
+    },
+    {
+      "name": "[NGINX] High Bandwidth Usage",
+      "type": "query alert",
+      "query": "avg(last_5m):sum:nginx.nginx_server_zone_bytes_sent{*} by {zone}.as_rate() > 100000000",
+      "message": "NGINX is sending high bandwidth.\n\nBandwidth: {{value}} bytes/sec (~{{eval \"value/1000000\"}} MB/s)\nZone: {{zone.name}}\n\nThis may impact network costs or indicate unusual activity.\n\n@slack-nginx-alerts",
+      "tags": ["service:nginx", "team:infrastructure"],
+      "priority": 3,
+      "options": {
+        "thresholds": {
+          "critical": 500000000,
+          "warning": 100000000
+        },
+        "notify_no_data": false,
+        "notify_audit": false,
+        "renotify_interval": 60
+      }
+    }
+  ]
+}

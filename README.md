@@ -130,6 +130,81 @@ Included alert groups:
 - **SSL/TLS** - Low session reuse, deprecated protocol usage
 - **Traffic** - Spikes, drops, high bandwidth
 
+### 6. Datadog Integration (Alternative to Prometheus)
+
+If you use Datadog instead of Prometheus, you can scrape the same metrics using Datadog's OpenMetrics integration.
+
+#### Configure Datadog Agent
+
+Copy `examples/datadog-openmetrics.yaml` to your Datadog Agent configuration directory:
+
+```bash
+# Linux
+sudo cp examples/datadog-openmetrics.yaml /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+
+# Update the endpoint URL if needed
+sudo vim /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+
+# Restart the agent
+sudo systemctl restart datadog-agent
+```
+
+#### Import Datadog Dashboard
+
+Import the pre-built dashboard using the Datadog API:
+
+```bash
+# Set your API and Application keys
+export DD_API_KEY="your-api-key"
+export DD_APP_KEY="your-app-key"
+
+# Import the dashboard
+curl -X POST "https://api.datadoghq.com/api/v1/dashboard" \
+  -H "Content-Type: application/json" \
+  -H "DD-API-KEY: ${DD_API_KEY}" \
+  -H "DD-APPLICATION-KEY: ${DD_APP_KEY}" \
+  -d @examples/datadog-dashboard.json
+```
+
+Or import manually via the Datadog UI:
+1. Navigate to Dashboards > New Dashboard
+2. Click the gear icon > Import dashboard JSON
+3. Paste the contents of `examples/datadog-dashboard.json`
+
+The Datadog dashboard includes:
+- **Overview** - Request rate, error rate, latency, connections, bandwidth, cache hit rate
+- **Request Metrics** - Request rate by zone, response status, HTTP methods, bandwidth
+- **Latency Metrics** - Average latency by zone, slow requests
+- **Upstream Metrics** - Request rate, response time, failures, bandwidth, health status
+- **Connections** - Connection states, accepted/handled rate
+- **SSL/TLS & Rate Limiting** - Protocol distribution, session reuse, rate limit status
+
+#### Import Datadog Monitors
+
+Import the pre-built monitors for alerting:
+
+```bash
+# Import monitors one at a time using jq to extract each monitor
+for monitor in $(cat examples/datadog-monitors.json | jq -c '.monitors[]'); do
+  curl -X POST "https://api.datadoghq.com/api/v1/monitor" \
+    -H "Content-Type: application/json" \
+    -H "DD-API-KEY: ${DD_API_KEY}" \
+    -H "DD-APPLICATION-KEY: ${DD_APP_KEY}" \
+    -d "$monitor"
+done
+```
+
+Included monitor categories:
+- **Availability** - NGINX down, no requests received
+- **Errors** - High 5xx/4xx error rates
+- **Latency** - High average latency, slow requests
+- **Upstream** - Failures, high error rate, high latency, unhealthy status
+- **Connections** - High active connections, unhandled connections
+- **Cache** - Low hit rate, high bypass rate
+- **Rate Limiting** - High rejection rate, rate limiting active
+- **SSL/TLS** - Low session reuse, deprecated protocol usage
+- **Traffic** - Spikes, drops, high bandwidth
+
 ## Metrics Exposed
 
 ### Connection Metrics

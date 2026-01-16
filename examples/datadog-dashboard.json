@@ -1,0 +1,524 @@
+{
+  "title": "NGINX - lua-resty-ngxstats",
+  "description": "NGINX metrics dashboard for lua-resty-ngxstats using Datadog OpenMetrics integration",
+  "widgets": [
+    {
+      "id": 1,
+      "definition": {
+        "title": "Overview",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 2,
+            "definition": {
+              "title": "Request Rate",
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_requests_total{$host}.as_rate()",
+                  "aggregator": "avg"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2,
+              "custom_unit": "req/s"
+            }
+          },
+          {
+            "id": 3,
+            "definition": {
+              "title": "Error Rate (5xx)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "100 * sum:nginx.nginx_server_zone_responses_total{status:5xx,$host,$zone}.as_rate() / sum:nginx.nginx_server_zone_responses_total{$host,$zone}.as_rate()",
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {"comparator": "<", "value": 1, "palette": "white_on_green"},
+                    {"comparator": ">=", "value": 1, "palette": "white_on_yellow"},
+                    {"comparator": ">=", "value": 5, "palette": "white_on_red"}
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 2,
+              "custom_unit": "%"
+            }
+          },
+          {
+            "id": 4,
+            "definition": {
+              "title": "Avg Latency",
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "1000 * sum:nginx.nginx_server_zone_request_time_seconds_sum{$host,$zone}.as_rate() / sum:nginx.nginx_server_zone_request_time_seconds_count{$host,$zone}.as_rate()",
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {"comparator": "<", "value": 100, "palette": "white_on_green"},
+                    {"comparator": ">=", "value": 100, "palette": "white_on_yellow"},
+                    {"comparator": ">=", "value": 500, "palette": "white_on_red"}
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 2,
+              "custom_unit": "ms"
+            }
+          },
+          {
+            "id": 5,
+            "definition": {
+              "title": "Active Connections",
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_connections_active{$host}",
+                  "aggregator": "avg"
+                }
+              ],
+              "autoscale": true,
+              "precision": 0
+            }
+          },
+          {
+            "id": 6,
+            "definition": {
+              "title": "Bandwidth (Out)",
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_server_zone_bytes_sent{$host,$zone}.as_rate()",
+                  "aggregator": "avg"
+                }
+              ],
+              "autoscale": true,
+              "precision": 2,
+              "custom_unit": "B/s"
+            }
+          },
+          {
+            "id": 7,
+            "definition": {
+              "title": "Cache Hit Rate",
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "100 * sum:nginx.nginx_server_zone_cache_total{cache_status:hit,$host,$zone}.as_rate() / sum:nginx.nginx_server_zone_cache_total{$host,$zone}.as_rate()",
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {"comparator": ">=", "value": 80, "palette": "white_on_green"},
+                    {"comparator": ">=", "value": 50, "palette": "white_on_yellow"},
+                    {"comparator": "<", "value": 50, "palette": "white_on_red"}
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 1,
+              "custom_unit": "%"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "definition": {
+        "title": "Request Metrics",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 11,
+            "definition": {
+              "title": "Request Rate by Zone",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_server_zone_requests_total{$host,$zone} by {zone}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "dog_classic", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "", "scale": "linear", "include_zero": true},
+              "markers": []
+            }
+          },
+          {
+            "id": 12,
+            "definition": {
+              "title": "Response Status Classes",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_server_zone_responses_total{status:2xx,$host,$zone}.as_rate()",
+                  "display_type": "area",
+                  "style": {"palette": "green", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "sum:nginx.nginx_server_zone_responses_total{status:3xx,$host,$zone}.as_rate()",
+                  "display_type": "area",
+                  "style": {"palette": "blue", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "sum:nginx.nginx_server_zone_responses_total{status:4xx,$host,$zone}.as_rate()",
+                  "display_type": "area",
+                  "style": {"palette": "yellow", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "sum:nginx.nginx_server_zone_responses_total{status:5xx,$host,$zone}.as_rate()",
+                  "display_type": "area",
+                  "style": {"palette": "red", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "", "scale": "linear", "include_zero": true}
+            }
+          },
+          {
+            "id": 13,
+            "definition": {
+              "title": "HTTP Methods Distribution",
+              "type": "toplist",
+              "requests": [
+                {
+                  "q": "top(sum:nginx.nginx_server_zone_methods_total{$host,$zone} by {method}.as_rate(), 10, 'mean', 'desc')"
+                }
+              ]
+            }
+          },
+          {
+            "id": 14,
+            "definition": {
+              "title": "Bandwidth by Zone",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_server_zone_bytes_sent{$host,$zone} by {zone}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "cool", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "sum:nginx.nginx_server_zone_bytes_received{$host,$zone} by {zone}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "warm", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "bytes/sec", "scale": "linear", "include_zero": true}
+            }
+          },
+          {
+            "id": 15,
+            "definition": {
+              "title": "Cache Status Distribution",
+              "type": "toplist",
+              "requests": [
+                {
+                  "q": "top(sum:nginx.nginx_server_zone_cache_total{$host,$zone} by {cache_status}.as_rate(), 10, 'mean', 'desc')"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 20,
+      "definition": {
+        "title": "Latency Metrics",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 21,
+            "definition": {
+              "title": "Average Request Latency by Zone",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "1000 * sum:nginx.nginx_server_zone_request_time_seconds_sum{$host,$zone} by {zone}.as_rate() / sum:nginx.nginx_server_zone_request_time_seconds_count{$host,$zone} by {zone}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "dog_classic", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "ms", "scale": "linear", "include_zero": true}
+            }
+          },
+          {
+            "id": 22,
+            "definition": {
+              "title": "Slow Requests Rate",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_server_zone_slow_requests_total{$host,$zone} by {zone}.as_rate()",
+                  "display_type": "bars",
+                  "style": {"palette": "warm", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "req/s", "scale": "linear", "include_zero": true}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 30,
+      "definition": {
+        "title": "Upstream Metrics",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 31,
+            "definition": {
+              "title": "Upstream Request Rate",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_upstream_requests_total{$host,$upstream} by {upstream}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "dog_classic", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "req/s", "scale": "linear", "include_zero": true}
+            }
+          },
+          {
+            "id": 32,
+            "definition": {
+              "title": "Upstream Average Response Time",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "1000 * sum:nginx.nginx_upstream_response_time_seconds_sum{$host,$upstream} by {upstream}.as_rate() / sum:nginx.nginx_upstream_response_time_seconds_count{$host,$upstream} by {upstream}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "dog_classic", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "ms", "scale": "linear", "include_zero": true}
+            }
+          },
+          {
+            "id": 33,
+            "definition": {
+              "title": "Upstream Response Status",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_upstream_responses_total{status:2xx,$host,$upstream}.as_rate()",
+                  "display_type": "area",
+                  "style": {"palette": "green", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "sum:nginx.nginx_upstream_responses_total{status:5xx,$host,$upstream}.as_rate()",
+                  "display_type": "area",
+                  "style": {"palette": "red", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "req/s", "scale": "linear", "include_zero": true}
+            }
+          },
+          {
+            "id": 34,
+            "definition": {
+              "title": "Upstream Failures",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_upstream_failures_total{$host,$upstream} by {upstream}.as_rate()",
+                  "display_type": "bars",
+                  "style": {"palette": "warm", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "failures/s", "scale": "linear", "include_zero": true}
+            }
+          },
+          {
+            "id": 35,
+            "definition": {
+              "title": "Upstream Bandwidth",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_upstream_bytes_sent{$host,$upstream} by {upstream}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "cool", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "sum:nginx.nginx_upstream_bytes_received{$host,$upstream} by {upstream}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "warm", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "bytes/sec", "scale": "linear", "include_zero": true}
+            }
+          },
+          {
+            "id": 36,
+            "definition": {
+              "title": "Upstream Health",
+              "type": "check_status",
+              "check": "nginx.nginx_upstream_health",
+              "grouping": "cluster",
+              "group_by": ["upstream"],
+              "tags": ["$host", "$upstream"]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 40,
+      "definition": {
+        "title": "Connections",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 41,
+            "definition": {
+              "title": "Connection States",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "avg:nginx.nginx_connections_active{$host}",
+                  "display_type": "line",
+                  "style": {"palette": "purple", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "avg:nginx.nginx_connections_reading{$host}",
+                  "display_type": "line",
+                  "style": {"palette": "blue", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "avg:nginx.nginx_connections_writing{$host}",
+                  "display_type": "line",
+                  "style": {"palette": "green", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "avg:nginx.nginx_connections_idle{$host}",
+                  "display_type": "line",
+                  "style": {"palette": "gray", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "connections", "scale": "linear", "include_zero": true}
+            }
+          },
+          {
+            "id": 42,
+            "definition": {
+              "title": "Connections Accepted/Handled",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_connections_accepted{$host}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "cool", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "sum:nginx.nginx_connections_handled{$host}.as_rate()",
+                  "display_type": "line",
+                  "style": {"palette": "warm", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "conn/s", "scale": "linear", "include_zero": true}
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": 50,
+      "definition": {
+        "title": "SSL/TLS & Rate Limiting",
+        "type": "group",
+        "layout_type": "ordered",
+        "widgets": [
+          {
+            "id": 51,
+            "definition": {
+              "title": "SSL/TLS Protocol Distribution",
+              "type": "toplist",
+              "requests": [
+                {
+                  "q": "top(sum:nginx.nginx_server_zone_ssl_protocol_total{$host,$zone} by {protocol}.as_rate(), 10, 'mean', 'desc')"
+                }
+              ]
+            }
+          },
+          {
+            "id": 52,
+            "definition": {
+              "title": "SSL Session Reuse Rate",
+              "type": "query_value",
+              "requests": [
+                {
+                  "q": "100 * sum:nginx.nginx_server_zone_ssl_sessions_total{reused:true,$host,$zone}.as_rate() / sum:nginx.nginx_server_zone_ssl_sessions_total{$host,$zone}.as_rate()",
+                  "aggregator": "avg",
+                  "conditional_formats": [
+                    {"comparator": ">=", "value": 80, "palette": "white_on_green"},
+                    {"comparator": ">=", "value": 50, "palette": "white_on_yellow"},
+                    {"comparator": "<", "value": 50, "palette": "white_on_red"}
+                  ]
+                }
+              ],
+              "autoscale": true,
+              "precision": 1,
+              "custom_unit": "%"
+            }
+          },
+          {
+            "id": 53,
+            "definition": {
+              "title": "Rate Limiting Status",
+              "type": "timeseries",
+              "requests": [
+                {
+                  "q": "sum:nginx.nginx_server_zone_limit_req_total{status:passed,$host,$zone}.as_rate()",
+                  "display_type": "area",
+                  "style": {"palette": "green", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "sum:nginx.nginx_server_zone_limit_req_total{status:delayed,$host,$zone}.as_rate()",
+                  "display_type": "area",
+                  "style": {"palette": "yellow", "line_type": "solid", "line_width": "normal"}
+                },
+                {
+                  "q": "sum:nginx.nginx_server_zone_limit_req_total{status:rejected,$host,$zone}.as_rate()",
+                  "display_type": "area",
+                  "style": {"palette": "red", "line_type": "solid", "line_width": "normal"}
+                }
+              ],
+              "yaxis": {"label": "req/s", "scale": "linear", "include_zero": true}
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "template_variables": [
+    {
+      "name": "host",
+      "default": "*",
+      "prefix": "host",
+      "available_values": []
+    },
+    {
+      "name": "zone",
+      "default": "*",
+      "prefix": "zone",
+      "available_values": []
+    },
+    {
+      "name": "upstream",
+      "default": "*",
+      "prefix": "upstream",
+      "available_values": []
+    }
+  ],
+  "layout_type": "ordered",
+  "is_read_only": false,
+  "notify_list": [],
+  "reflow_type": "fixed"
+}
