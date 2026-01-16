@@ -162,165 +162,264 @@ local metric_info = {
 }
 
 --[[
+  Split a colon-delimited key into parts
+  @param key - The key string to split
+  @return table - Array of key parts
+]]--
+local function split_key(key)
+    local parts = {}
+    for part in string.gmatch(key, "[^:]+") do
+        table.insert(parts, part)
+    end
+    return parts
+end
+
+--[[
+  Server zone metric handlers
+  Each handler takes (parts, value, metric) and populates the metric table
+]]--
+local server_zone_handlers = {
+    requests = function(parts, value, metric)
+        metric.name = "nginx_server_zone_requests_total"
+        metric.value = value
+    end,
+    received = function(parts, value, metric)
+        metric.name = "nginx_server_zone_bytes_received"
+        metric.value = value
+    end,
+    sent = function(parts, value, metric)
+        metric.name = "nginx_server_zone_bytes_sent"
+        metric.value = value
+    end,
+    responses = function(parts, value, metric)
+        metric.name = "nginx_server_zone_responses_total"
+        metric.value = value
+        if parts[4] and parts[4] ~= "total" then
+            metric.labels.status = parts[4]
+        end
+    end,
+    methods = function(parts, value, metric)
+        metric.name = "nginx_server_zone_methods_total"
+        metric.labels.method = parts[4]
+        metric.value = value
+    end,
+    cache = function(parts, value, metric)
+        metric.name = "nginx_server_zone_cache_total"
+        metric.labels.cache_status = parts[4]
+        metric.value = value
+    end,
+    request_time_sum = function(parts, value, metric)
+        metric.name = "nginx_server_zone_request_time_seconds_sum"
+        metric.value = value
+    end,
+    request_time_count = function(parts, value, metric)
+        metric.name = "nginx_server_zone_request_time_seconds_count"
+        metric.value = value
+    end,
+    request_time_bucket = function(parts, value, metric)
+        metric.name = "nginx_server_zone_request_time_seconds_bucket"
+        metric.labels.le = parts[4]
+        metric.value = value
+    end,
+    limit_req = function(parts, value, metric)
+        metric.name = "nginx_server_zone_limit_req_total"
+        metric.labels.status = parts[4]
+        metric.value = value
+    end
+}
+
+--[[
+  SSL metric handlers for server zones
+]]--
+local ssl_handlers = {
+    protocol = function(parts, value, metric)
+        metric.name = "nginx_server_zone_ssl_protocol_total"
+        metric.labels.protocol = parts[5]
+        metric.value = value
+    end,
+    cipher = function(parts, value, metric)
+        metric.name = "nginx_server_zone_ssl_cipher_total"
+        metric.labels.cipher = parts[5]
+        metric.value = value
+    end,
+    session_reused = function(parts, value, metric)
+        metric.name = "nginx_server_zone_ssl_sessions_total"
+        metric.labels.reused = "true"
+        metric.value = value
+    end,
+    session_new = function(parts, value, metric)
+        metric.name = "nginx_server_zone_ssl_sessions_total"
+        metric.labels.reused = "false"
+        metric.value = value
+    end
+}
+
+--[[
+  Upstream metric handlers
+]]--
+local upstream_handlers = {
+    requests = function(parts, value, metric)
+        metric.name = "nginx_upstream_requests_total"
+        metric.value = value
+    end,
+    failures = function(parts, value, metric)
+        metric.name = "nginx_upstream_failures_total"
+        metric.value = value
+    end,
+    response_time_sum = function(parts, value, metric)
+        metric.name = "nginx_upstream_response_time_seconds_sum"
+        metric.value = value
+    end,
+    response_time_count = function(parts, value, metric)
+        metric.name = "nginx_upstream_response_time_seconds_count"
+        metric.value = value
+    end,
+    response_time_bucket = function(parts, value, metric)
+        metric.name = "nginx_upstream_response_time_seconds_bucket"
+        metric.labels.le = parts[4]
+        metric.value = value
+    end,
+    header_time_sum = function(parts, value, metric)
+        metric.name = "nginx_upstream_header_time_seconds_sum"
+        metric.value = value
+    end,
+    header_time_count = function(parts, value, metric)
+        metric.name = "nginx_upstream_header_time_seconds_count"
+        metric.value = value
+    end,
+    queue_time = function(parts, value, metric)
+        metric.name = "nginx_upstream_queue_time_seconds"
+        metric.value = value
+    end,
+    connect_time = function(parts, value, metric)
+        metric.name = "nginx_upstream_connect_time_seconds"
+        metric.value = value
+    end,
+    sent = function(parts, value, metric)
+        metric.name = "nginx_upstream_bytes_sent"
+        metric.value = value
+    end,
+    received = function(parts, value, metric)
+        metric.name = "nginx_upstream_bytes_received"
+        metric.value = value
+    end,
+    server = function(parts, value, metric)
+        metric.name = "nginx_upstream_server_info"
+        metric.labels.server = tostring(value)
+        metric.value = 1  -- Info metric always has value 1
+    end,
+    responses = function(parts, value, metric)
+        metric.name = "nginx_upstream_responses_total"
+        metric.value = value
+        if parts[4] and parts[4] ~= "total" then
+            metric.labels.status = parts[4]
+        end
+    end
+}
+
+--[[
+  Upstream server metric handlers (per-server metrics)
+]]--
+local upstream_server_handlers = {
+    requests = function(parts, value, metric)
+        metric.name = "nginx_upstream_server_requests_total"
+        metric.value = value
+    end,
+    response_time = function(parts, value, metric)
+        metric.name = "nginx_upstream_server_response_time_seconds"
+        metric.value = value
+    end
+}
+
+--[[
+  Parse server zone metrics
+  @param parts - Key parts array
+  @param value - Metric value
+  @param metric - Metric table to populate
+]]--
+local function parse_server_zone(parts, value, metric)
+    metric.labels.zone = parts[2]
+
+    -- Handle SSL metrics separately (they have a sub-category)
+    if parts[3] == "ssl" then
+        local handler = ssl_handlers[parts[4]]
+        if handler then
+            handler(parts, value, metric)
+        else
+            ngx.log(ngx.DEBUG, "ngxstats: unknown SSL metric type: ", parts[4] or "nil")
+        end
+        return
+    end
+
+    -- Handle other server zone metrics
+    local handler = server_zone_handlers[parts[3]]
+    if handler then
+        handler(parts, value, metric)
+    else
+        ngx.log(ngx.DEBUG, "ngxstats: unknown server zone metric type: ", parts[3] or "nil")
+    end
+end
+
+--[[
+  Parse upstream metrics
+  @param parts - Key parts array
+  @param value - Metric value
+  @param metric - Metric table to populate
+]]--
+local function parse_upstream(parts, value, metric)
+    metric.labels.upstream = parts[2]
+
+    -- Handle per-server metrics
+    if parts[3] == "servers" then
+        local server_addr = parts[4]
+        metric.labels.server = string.gsub(server_addr, "_", ".")
+        local handler = upstream_server_handlers[parts[5]]
+        if handler then
+            handler(parts, value, metric)
+        else
+            ngx.log(ngx.DEBUG, "ngxstats: unknown upstream server metric type: ", parts[5] or "nil")
+        end
+        return
+    end
+
+    -- Handle other upstream metrics
+    local handler = upstream_handlers[parts[3]]
+    if handler then
+        handler(parts, value, metric)
+    else
+        ngx.log(ngx.DEBUG, "ngxstats: unknown upstream metric type: ", parts[3] or "nil")
+    end
+end
+
+--[[
   Convert a key path to Prometheus metric name and labels
   Examples:
     "connections:active" -> {name="connections_active", labels={}}
     "server_zones:default:requests" -> {name="server_zone_requests_total", labels={zone="default"}}
     "upstreams:example_com:response_time" -> {name="upstream_response_time_seconds", labels={upstream="example_com"}}
+
+  @param key - Colon-delimited key string
+  @param value - Metric value
+  @return table - Metric table with name, labels, and value
 ]]--
 local function parse_metric(key, value)
-    local parts = {}
-    for part in string.gmatch(key, "[^:]+") do
-        table.insert(parts, part)
-    end
-
+    local parts = split_key(key)
     local metric = {labels = {}}
+    local category = parts[1]
 
-    -- Connections metrics
-    if parts[1] == "connections" then
+    if category == "connections" then
         metric.name = "nginx_connections_" .. parts[2]
         metric.value = value
 
-    -- Requests metrics
-    elseif parts[1] == "requests" then
+    elseif category == "requests" then
         metric.name = "nginx_requests_" .. parts[2]
         metric.value = value
 
-    -- Server zones metrics
-    elseif parts[1] == "server_zones" then
-        local zone = parts[2]
-        metric.labels.zone = zone
+    elseif category == "server_zones" then
+        parse_server_zone(parts, value, metric)
 
-        if parts[3] == "requests" then
-            metric.name = "nginx_server_zone_requests_total"
-            metric.value = value
-        elseif parts[3] == "received" then
-            metric.name = "nginx_server_zone_bytes_received"
-            metric.value = value
-        elseif parts[3] == "sent" then
-            metric.name = "nginx_server_zone_bytes_sent"
-            metric.value = value
-        elseif parts[3] == "responses" then
-            if parts[4] == "total" then
-                metric.name = "nginx_server_zone_responses_total"
-                metric.value = value
-            else
-                -- Individual status code or status class (2xx, 4xx, etc.)
-                metric.name = "nginx_server_zone_responses_total"
-                metric.labels.status = parts[4]
-                metric.value = value
-            end
-        elseif parts[3] == "methods" then
-            -- HTTP method tracking (GET, POST, etc.)
-            metric.name = "nginx_server_zone_methods_total"
-            metric.labels.method = parts[4]
-            metric.value = value
-        elseif parts[3] == "cache" then
-            -- Cache status tracking (hit, miss, expired, etc.)
-            metric.name = "nginx_server_zone_cache_total"
-            metric.labels.cache_status = parts[4]
-            metric.value = value
-        elseif parts[3] == "request_time_sum" then
-            metric.name = "nginx_server_zone_request_time_seconds_sum"
-            metric.value = value
-        elseif parts[3] == "request_time_count" then
-            metric.name = "nginx_server_zone_request_time_seconds_count"
-            metric.value = value
-        elseif parts[3] == "request_time_bucket" then
-            -- Histogram bucket with le label
-            metric.name = "nginx_server_zone_request_time_seconds_bucket"
-            metric.labels.le = parts[4]
-            metric.value = value
-        elseif parts[3] == "ssl" then
-            -- SSL/TLS metrics
-            if parts[4] == "protocol" then
-                metric.name = "nginx_server_zone_ssl_protocol_total"
-                metric.labels.protocol = parts[5]
-                metric.value = value
-            elseif parts[4] == "cipher" then
-                metric.name = "nginx_server_zone_ssl_cipher_total"
-                metric.labels.cipher = parts[5]
-                metric.value = value
-            elseif parts[4] == "session_reused" then
-                metric.name = "nginx_server_zone_ssl_sessions_total"
-                metric.labels.reused = "true"
-                metric.value = value
-            elseif parts[4] == "session_new" then
-                metric.name = "nginx_server_zone_ssl_sessions_total"
-                metric.labels.reused = "false"
-                metric.value = value
-            end
-        elseif parts[3] == "limit_req" then
-            -- Rate limiting metrics
-            metric.name = "nginx_server_zone_limit_req_total"
-            metric.labels.status = parts[4]
-            metric.value = value
-        end
-
-    -- Upstream metrics
-    elseif parts[1] == "upstreams" then
-        local upstream = parts[2]
-        metric.labels.upstream = upstream
-
-        if parts[3] == "requests" then
-            metric.name = "nginx_upstream_requests_total"
-            metric.value = value
-        elseif parts[3] == "failures" then
-            metric.name = "nginx_upstream_failures_total"
-            metric.value = value
-        elseif parts[3] == "response_time_sum" then
-            metric.name = "nginx_upstream_response_time_seconds_sum"
-            metric.value = value
-        elseif parts[3] == "response_time_count" then
-            metric.name = "nginx_upstream_response_time_seconds_count"
-            metric.value = value
-        elseif parts[3] == "response_time_bucket" then
-            metric.name = "nginx_upstream_response_time_seconds_bucket"
-            metric.labels.le = parts[4]
-            metric.value = value
-        elseif parts[3] == "header_time_sum" then
-            metric.name = "nginx_upstream_header_time_seconds_sum"
-            metric.value = value
-        elseif parts[3] == "header_time_count" then
-            metric.name = "nginx_upstream_header_time_seconds_count"
-            metric.value = value
-        elseif parts[3] == "queue_time" then
-            metric.name = "nginx_upstream_queue_time_seconds"
-            metric.value = value
-        elseif parts[3] == "connect_time" then
-            metric.name = "nginx_upstream_connect_time_seconds"
-            metric.value = value
-        elseif parts[3] == "sent" then
-            metric.name = "nginx_upstream_bytes_sent"
-            metric.value = value
-        elseif parts[3] == "received" then
-            metric.name = "nginx_upstream_bytes_received"
-            metric.value = value
-        elseif parts[3] == "server" then
-            metric.name = "nginx_upstream_server_info"
-            metric.labels.server = tostring(value)
-            metric.value = 1  -- Info metric always has value 1
-        elseif parts[3] == "servers" then
-            -- Per-server metrics: upstreams:name:servers:addr:metric
-            local server_addr = parts[4]
-            metric.labels.server = string.gsub(server_addr, "_", ".")
-            if parts[5] == "requests" then
-                metric.name = "nginx_upstream_server_requests_total"
-                metric.value = value
-            elseif parts[5] == "response_time" then
-                metric.name = "nginx_upstream_server_response_time_seconds"
-                metric.value = value
-            end
-        elseif parts[3] == "responses" then
-            if parts[4] == "total" then
-                metric.name = "nginx_upstream_responses_total"
-                metric.value = value
-            else
-                metric.name = "nginx_upstream_responses_total"
-                metric.labels.status = parts[4]
-                metric.value = value
-            end
-        end
+    elseif category == "upstreams" then
+        parse_upstream(parts, value, metric)
     end
 
     return metric

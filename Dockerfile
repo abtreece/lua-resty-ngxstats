@@ -15,4 +15,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/status || exit 1
 
 STOPSIGNAL SIGTERM
-ENTRYPOINT ["/usr/local/openresty/bin/openresty"]
+ENTRYPOINT ["/usr/local/openresty/bin/openresty", "-g", "daemon off;"]
