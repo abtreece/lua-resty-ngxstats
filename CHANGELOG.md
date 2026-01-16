@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Slow request tracking** - `nginx_server_zone_slow_requests_total` counts requests exceeding configurable threshold (default 1s)
+- **Request size histogram** - `nginx_server_zone_request_length_bytes_bucket` tracks request body size distribution with buckets from 100B to 100MB
+- **Upstream health gauge** - `nginx_upstream_health` provides calculated health status (1=healthy, 0=unhealthy) based on failure rate threshold (default 10%)
 - **Prometheus alerting rules** - Pre-built alerting rules (`examples/prometheus-alerts.yml`) with:
   - Availability alerts (NGINX down, no requests)
   - Error rate alerts (5xx/4xx thresholds)

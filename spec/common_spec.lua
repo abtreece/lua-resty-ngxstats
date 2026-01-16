@@ -288,4 +288,79 @@ describe("common module", function()
             assert.equals(1, mock_stats:get("custom:bucket:+Inf"))
         end)
     end)
+
+    describe("REQUEST_SIZE_BUCKETS", function()
+        it("should be defined", function()
+            assert.is_table(common.REQUEST_SIZE_BUCKETS)
+        end)
+
+        it("should contain expected bucket boundaries", function()
+            assert.equals(7, #common.REQUEST_SIZE_BUCKETS)
+            assert.equals(100, common.REQUEST_SIZE_BUCKETS[1])
+            assert.equals(100000000, common.REQUEST_SIZE_BUCKETS[7])
+        end)
+    end)
+
+    describe("SLOW_REQUEST_THRESHOLD", function()
+        it("should be defined", function()
+            assert.is_number(common.SLOW_REQUEST_THRESHOLD)
+        end)
+
+        it("should have a reasonable default value", function()
+            assert.equals(1.0, common.SLOW_REQUEST_THRESHOLD)
+        end)
+    end)
+
+    describe("UPSTREAM_HEALTH_FAILURE_THRESHOLD", function()
+        it("should be defined", function()
+            assert.is_number(common.UPSTREAM_HEALTH_FAILURE_THRESHOLD)
+        end)
+
+        it("should have a reasonable default value", function()
+            assert.equals(0.1, common.UPSTREAM_HEALTH_FAILURE_THRESHOLD)
+        end)
+    end)
+
+    describe("calculate_upstream_health()", function()
+        it("should return 1 (healthy) when no data", function()
+            local health = common.calculate_upstream_health(mock_stats, "test_upstream")
+            assert.equals(1, health)
+        end)
+
+        it("should return 1 (healthy) when failure rate is below threshold", function()
+            -- 90 requests, 5 failures = 5.26% failure rate (below 10% threshold)
+            mock_stats:set("upstreams:backend:requests", 90)
+            mock_stats:set("upstreams:backend:failures", 5)
+
+            local health = common.calculate_upstream_health(mock_stats, "backend")
+            assert.equals(1, health)
+        end)
+
+        it("should return 0 (unhealthy) when failure rate exceeds threshold", function()
+            -- 80 requests, 20 failures = 20% failure rate (above 10% threshold)
+            mock_stats:set("upstreams:unhealthy:requests", 80)
+            mock_stats:set("upstreams:unhealthy:failures", 20)
+
+            local health = common.calculate_upstream_health(mock_stats, "unhealthy")
+            assert.equals(0, health)
+        end)
+
+        it("should return 0 (unhealthy) when only failures exist", function()
+            -- 0 requests, 10 failures = 100% failure rate
+            mock_stats:set("upstreams:failing:requests", 0)
+            mock_stats:set("upstreams:failing:failures", 10)
+
+            local health = common.calculate_upstream_health(mock_stats, "failing")
+            assert.equals(0, health)
+        end)
+
+        it("should return 1 (healthy) when exactly at threshold", function()
+            -- 90 requests, 10 failures = 10% failure rate (at threshold, not above)
+            mock_stats:set("upstreams:edge:requests", 90)
+            mock_stats:set("upstreams:edge:failures", 10)
+
+            local health = common.calculate_upstream_health(mock_stats, "edge")
+            assert.equals(1, health)
+        end)
+    end)
 end)
