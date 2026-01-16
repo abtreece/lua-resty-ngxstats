@@ -95,6 +95,18 @@ scrape_configs:
     metrics_path: '/status'
 ```
 
+### 4. Import Grafana Dashboard
+
+Import the pre-built dashboard from `examples/grafana-dashboard.json` or use dashboard ID from Grafana.com (if published).
+
+The dashboard includes:
+- **Overview row** - Request rate, error rate, latency, active connections, bandwidth, cache hit rate
+- **Request metrics** - Request rate by zone, response status distribution, HTTP methods, bandwidth
+- **Latency metrics** - Average latency, percentiles (p50/p90/p99), per-zone breakdown
+- **Upstream metrics** - Request rate, response time, percentiles, failures, bandwidth
+- **Connection metrics** - Connection states, accepted/handled rate
+- **SSL/TLS & Rate limiting** - Protocol distribution, session reuse, rate limit status
+
 ## Metrics Exposed
 
 ### Connection Metrics
