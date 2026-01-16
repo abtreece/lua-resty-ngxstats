@@ -56,8 +56,11 @@ test_upstream_response_time() {
 
 # Test: Upstream response time histogram buckets
 test_upstream_histogram_buckets() {
-    http_requests "${NGINX_URL}/proxy/fast" 5
-    sleep 1
+    # Make requests sequentially to ensure completion
+    for i in {1..5}; do
+        curl -s "${NGINX_URL}/proxy/fast" > /dev/null
+    done
+    sleep 2
 
     local metrics
     metrics=$(fetch_metrics)
@@ -116,11 +119,11 @@ test_upstream_bytes_received() {
 
 # Test: Upstream 5xx responses tracked
 test_upstream_error_responses() {
-    # Make requests that return 500 from upstream
+    # Make requests that return 500 from upstream (sequentially)
     for i in {1..5}; do
         curl -s "${NGINX_URL}/proxy/error/500" > /dev/null || true
     done
-    sleep 1
+    sleep 2
 
     local metrics
     metrics=$(fetch_metrics)
@@ -228,11 +231,11 @@ test_no_duplicate_upstream_metrics() {
 
 # Test: Upstream response codes are tracked correctly
 test_upstream_response_codes() {
-    # Make requests to different upstream endpoints
+    # Make requests to different upstream endpoints (sequentially)
     curl -s "${NGINX_URL}/proxy/fast" > /dev/null        # Should be 200
     curl -s "${NGINX_URL}/proxy/error/500" > /dev/null   # Should be 500
     curl -s "${NGINX_URL}/proxy/error/502" > /dev/null   # Should be 502
-    sleep 1
+    sleep 2
 
     local metrics
     metrics=$(fetch_metrics)

@@ -88,8 +88,8 @@ main() {
         exit 1
     fi
 
-    # Small delay to ensure metrics are initialized
-    sleep 2
+    # Delay to ensure metrics are initialized and upstream is fully ready
+    sleep 3
 
     echo ""
     echo "========================================"
