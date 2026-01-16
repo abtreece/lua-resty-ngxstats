@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Prometheus alerting rules** - Pre-built alerting rules (`examples/prometheus-alerts.yml`) with:
+  - Availability alerts (NGINX down, no requests)
+  - Error rate alerts (5xx/4xx thresholds)
+  - Latency alerts (p99, average latency)
+  - Upstream alerts (failures, error rate, latency)
+  - Connection alerts (high connections, unhandled)
+  - Cache alerts (low hit rate, high bypass)
+  - Rate limiting alerts (high rejections)
+  - SSL/TLS alerts (low session reuse, deprecated protocols)
+  - Traffic alerts (spikes, drops, high bandwidth)
 - **Grafana dashboard** - Pre-built dashboard (`examples/grafana-dashboard.json`) with:
   - Overview panels (request rate, error rate, latency, connections, bandwidth, cache hit rate)
   - Request metrics (rate by zone, response status distribution, HTTP methods, bandwidth)
