@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Grafana dashboard** - Pre-built dashboard (`examples/grafana-dashboard.json`) with:
+  - Overview panels (request rate, error rate, latency, connections, bandwidth, cache hit rate)
+  - Request metrics (rate by zone, response status distribution, HTTP methods, bandwidth)
+  - Latency metrics (average latency, p50/p90/p99 percentiles, per-zone breakdown)
+  - Upstream metrics (request rate, response time percentiles, failures, bandwidth)
+  - Connection metrics (states, accepted/handled rate)
+  - SSL/TLS metrics (protocol distribution, session reuse rate)
+  - Rate limiting status visualization
+  - Template variables for job, zone, and upstream filtering
+
 ## [1.1.0] - 2026-01-15
 
 ### Added
