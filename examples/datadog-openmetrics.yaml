@@ -1,0 +1,110 @@
+# Datadog Agent OpenMetrics configuration for lua-resty-ngxstats
+#
+# This configuration file tells the Datadog Agent to scrape Prometheus-format
+# metrics from the ngxstats /status endpoint.
+#
+# Installation:
+#   1. Copy this file to: /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml
+#   2. Update the openmetrics_endpoint URL to match your NGINX setup
+#   3. Restart the Datadog Agent: sudo systemctl restart datadog-agent
+#
+# For containerized environments, mount this file or use environment variables.
+# See: https://docs.datadoghq.com/containers/docker/integrations/
+
+init_config:
+
+instances:
+  # Primary NGINX instance
+  - openmetrics_endpoint: http://localhost:8080/status
+
+    # Namespace prefix for all metrics (will appear as nginx.*)
+    namespace: nginx
+
+    # Metrics to collect - using regex patterns to match all ngxstats metrics
+    metrics:
+      # Connection metrics
+      - nginx_connections_active
+      - nginx_connections_accepted
+      - nginx_connections_handled
+      - nginx_connections_reading
+      - nginx_connections_writing
+      - nginx_connections_idle
+
+      # Request metrics
+      - nginx_requests_total
+      - nginx_requests_current
+
+      # Server zone metrics
+      - nginx_server_zone_requests_total
+      - nginx_server_zone_bytes_received
+      - nginx_server_zone_bytes_sent
+      - nginx_server_zone_responses_total
+      - nginx_server_zone_methods_total
+      - nginx_server_zone_cache_total
+      - nginx_server_zone_request_time_seconds_sum
+      - nginx_server_zone_request_time_seconds_count
+      - nginx_server_zone_request_time_seconds_bucket
+      - nginx_server_zone_ssl_protocol_total
+      - nginx_server_zone_ssl_cipher_total
+      - nginx_server_zone_ssl_sessions_total
+      - nginx_server_zone_limit_req_total
+      - nginx_server_zone_slow_requests_total
+      - nginx_server_zone_request_length_bytes_bucket
+
+      # Upstream metrics
+      - nginx_upstream_requests_total
+      - nginx_upstream_failures_total
+      - nginx_upstream_response_time_seconds_sum
+      - nginx_upstream_response_time_seconds_count
+      - nginx_upstream_response_time_seconds_bucket
+      - nginx_upstream_header_time_seconds_sum
+      - nginx_upstream_header_time_seconds_count
+      - nginx_upstream_queue_time_seconds
+      - nginx_upstream_connect_time_seconds
+      - nginx_upstream_bytes_sent
+      - nginx_upstream_bytes_received
+      - nginx_upstream_responses_total
+      - nginx_upstream_server_info
+      - nginx_upstream_server_requests_total
+      - nginx_upstream_server_response_time_seconds
+      - nginx_upstream_health
+
+    # Optional: Add custom tags to all metrics from this instance
+    tags:
+      - env:production
+      - service:nginx
+
+    # Optional: Authentication (if your /status endpoint requires it)
+    # username: <USERNAME>
+    # password: <PASSWORD>
+
+    # Optional: TLS/SSL configuration
+    # tls_verify: true
+    # tls_ca_cert: /path/to/ca.pem
+    # tls_cert: /path/to/client.pem
+    # tls_private_key: /path/to/client.key
+
+    # Scrape timeout (default: 10 seconds)
+    timeout: 10
+
+    # Optional: Send histogram buckets as individual metrics
+    # This enables more detailed latency analysis in Datadog
+    send_histograms_buckets: true
+
+    # Optional: Send distribution metrics for histograms
+    # Enables percentile calculations in Datadog
+    send_distribution_buckets: true
+
+    # Optional: Send monotonic counter values as-is (not as rates)
+    # Default behavior converts counters to rates
+    send_monotonic_counter: true
+
+  # Example: Additional NGINX instance
+  # - openmetrics_endpoint: http://nginx-2.example.com:8080/status
+  #   namespace: nginx
+  #   metrics:
+  #     - nginx_.*
+  #   tags:
+  #     - env:production
+  #     - service:nginx
+  #     - instance:nginx-2
