@@ -97,6 +97,14 @@ local metric_info = {
         help = "Total rate-limited requests per server zone by status",
         type = "counter"
     },
+    ["server_zone_slow_requests_total"] = {
+        help = "Total slow requests per server zone (exceeding threshold)",
+        type = "counter"
+    },
+    ["server_zone_request_length_bytes_bucket"] = {
+        help = "Request size histogram bucket per server zone in bytes",
+        type = "counter"
+    },
 
     -- Upstream metrics
     ["upstream_requests_total"] = {
@@ -158,6 +166,10 @@ local metric_info = {
     ["upstream_server_response_time_seconds"] = {
         help = "Total response time per upstream server in seconds",
         type = "counter"
+    },
+    ["upstream_health"] = {
+        help = "Upstream health status (1 = healthy, 0 = unhealthy)",
+        type = "gauge"
     }
 }
 
@@ -224,6 +236,15 @@ local server_zone_handlers = {
     limit_req = function(parts, value, metric)
         metric.name = "nginx_server_zone_limit_req_total"
         metric.labels.status = parts[4]
+        metric.value = value
+    end,
+    slow_requests = function(parts, value, metric)
+        metric.name = "nginx_server_zone_slow_requests_total"
+        metric.value = value
+    end,
+    request_length_bucket = function(parts, value, metric)
+        metric.name = "nginx_server_zone_request_length_bytes_bucket"
+        metric.labels.le = parts[4]
         metric.value = value
     end
 }
@@ -314,6 +335,10 @@ local upstream_handlers = {
         if parts[4] and parts[4] ~= "total" then
             metric.labels.status = parts[4]
         end
+    end,
+    health = function(parts, value, metric)
+        metric.name = "nginx_upstream_health"
+        metric.value = value
     end
 }
 

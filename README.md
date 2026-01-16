@@ -19,6 +19,9 @@ A lightweight Lua library for OpenResty that collects detailed NGINX metrics and
 - **SSL/TLS Metrics** - Protocol version, cipher suite, and session reuse tracking
 - **Rate Limiting** - Track rate limit passes, delays, and rejections
 - **HTTP Method Tracking** - GET, POST, PUT, DELETE request distribution
+- **Slow Request Tracking** - Count requests exceeding configurable time threshold
+- **Request Size Histogram** - Distribution of request body sizes
+- **Upstream Health Gauge** - Calculated health status based on failure rate
 - **Zero Dependencies** - Pure Lua implementation using OpenResty's built-in APIs
 
 ## Installation
@@ -164,6 +167,8 @@ Included alert groups:
 | `nginx_server_zone_ssl_cipher_total` | counter | `zone`, `cipher` | Requests by SSL/TLS cipher |
 | `nginx_server_zone_ssl_sessions_total` | counter | `zone`, `reused` | SSL sessions by reuse status |
 | `nginx_server_zone_limit_req_total` | counter | `zone`, `status` | Rate-limited requests by status |
+| `nginx_server_zone_slow_requests_total` | counter | `zone` | Requests exceeding 1s threshold |
+| `nginx_server_zone_request_length_bytes_bucket` | counter | `zone`, `le` | Request size histogram buckets |
 
 ### Upstream Metrics
 
@@ -184,6 +189,7 @@ Included alert groups:
 | `nginx_upstream_server_info` | gauge | `upstream`, `server` | Current upstream server address |
 | `nginx_upstream_server_requests_total` | counter | `upstream`, `server` | Requests per upstream server |
 | `nginx_upstream_server_response_time_seconds` | counter | `upstream`, `server` | Response time per server |
+| `nginx_upstream_health` | gauge | `upstream` | Health status (1=healthy, 0=unhealthy) |
 
 ## Example Output
 
@@ -297,8 +303,8 @@ location / {
 | Prometheus format | ✅ | ✅ | ✅ |
 | Cache metrics | ✅ | ✅ | ✅ |
 | HTTP methods | ✅ | ✅ | ✅ |
-| Upstream health | ❌ | Partial | ✅ |
-| Percentiles | ❌ | ❌ | ✅ |
+| Upstream health | ✅ | Partial | ✅ |
+| Percentiles | ✅ (histograms) | ❌ | ✅ |
 
 ## License
 

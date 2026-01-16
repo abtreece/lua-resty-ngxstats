@@ -253,5 +253,44 @@ describe("prometheus module", function()
             assert.matches('nginx_upstream_response_time_seconds_bucket{[^}]*le="0.5"[^}]*} 80', output)
             assert.matches('nginx_upstream_response_time_seconds_bucket{[^}]*le="%+Inf"[^}]*} 100', output)
         end)
+
+        it("should format slow request metrics", function()
+            mock_stats:set("server_zones:default:slow_requests", 15)
+            mock_stats:set("server_zones:api:slow_requests", 3)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_server_zone_slow_requests_total{zone="default"} 15', output)
+            assert.matches('nginx_server_zone_slow_requests_total{zone="api"} 3', output)
+            assert.matches('# TYPE nginx_server_zone_slow_requests_total counter', output)
+            assert.matches('# HELP nginx_server_zone_slow_requests_total', output)
+        end)
+
+        it("should format request length histogram", function()
+            mock_stats:set("server_zones:default:request_length_bucket:100", 50)
+            mock_stats:set("server_zones:default:request_length_bucket:1000", 80)
+            mock_stats:set("server_zones:default:request_length_bucket:10000", 95)
+            mock_stats:set("server_zones:default:request_length_bucket:+Inf", 100)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_server_zone_request_length_bytes_bucket{[^}]*le="100"[^}]*} 50', output)
+            assert.matches('nginx_server_zone_request_length_bytes_bucket{[^}]*le="1000"[^}]*} 80', output)
+            assert.matches('nginx_server_zone_request_length_bytes_bucket{[^}]*le="10000"[^}]*} 95', output)
+            assert.matches('nginx_server_zone_request_length_bytes_bucket{[^}]*le="%+Inf"[^}]*} 100', output)
+            assert.matches('# TYPE nginx_server_zone_request_length_bytes_bucket counter', output)
+        end)
+
+        it("should format upstream health gauge", function()
+            mock_stats:set("upstreams:backend:health", 1)
+            mock_stats:set("upstreams:unhealthy_backend:health", 0)
+
+            local output = prometheus.format(mock_stats)
+
+            assert.matches('nginx_upstream_health{upstream="backend"} 1', output)
+            assert.matches('nginx_upstream_health{upstream="unhealthy_backend"} 0', output)
+            assert.matches('# TYPE nginx_upstream_health gauge', output)
+            assert.matches('# HELP nginx_upstream_health', output)
+        end)
     end)
 end)

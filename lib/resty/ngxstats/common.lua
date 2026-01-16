@@ -212,6 +212,18 @@ end
 -- Based on Prometheus best practices for HTTP latency
 _M.LATENCY_BUCKETS = {0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10}
 
+-- Standard histogram buckets for request size metrics (in bytes)
+-- Covers range from 100 bytes to 100MB
+_M.REQUEST_SIZE_BUCKETS = {100, 1000, 10000, 100000, 1000000, 10000000, 100000000}
+
+-- Threshold for slow request logging (in seconds)
+-- Requests taking longer than this will be counted as "slow"
+_M.SLOW_REQUEST_THRESHOLD = 1.0
+
+-- Threshold for upstream health calculation
+-- Upstream is considered unhealthy if failure rate exceeds this percentage
+_M.UPSTREAM_HEALTH_FAILURE_THRESHOLD = 0.1  -- 10% failure rate
+
 --[[
   Increment histogram bucket counters for a latency value
   @param stats - The shared memory dictionary
@@ -228,6 +240,35 @@ function _M.record_histogram(stats, key_prefix, value, buckets)
     end
     -- Always increment +Inf bucket
     _M.incr_or_create(stats, key_prefix .. ":+Inf", 1)
+end
+
+--[[
+  Calculate upstream health status based on requests and failures
+  Returns 1 for healthy, 0 for unhealthy
+  @param stats - The shared memory dictionary
+  @param upstream_name - Name of the upstream
+  @return number - 1 if healthy, 0 if unhealthy
+]]--
+function _M.calculate_upstream_health(stats, upstream_name)
+    local requests_key = _M.key({'upstreams', upstream_name, 'requests'})
+    local failures_key = _M.key({'upstreams', upstream_name, 'failures'})
+
+    local requests = stats:get(requests_key) or 0
+    local failures = stats:get(failures_key) or 0
+
+    -- Need at least some requests to determine health
+    if requests == 0 and failures == 0 then
+        return 1  -- Assume healthy if no data
+    end
+
+    local total = requests + failures
+    local failure_rate = failures / total
+
+    if failure_rate > _M.UPSTREAM_HEALTH_FAILURE_THRESHOLD then
+        return 0  -- Unhealthy
+    end
+
+    return 1  -- Healthy
 end
 
 return _M
