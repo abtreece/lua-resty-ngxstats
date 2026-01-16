@@ -121,6 +121,9 @@ main() {
             echo "----------------------------------------"
 
             # Run the test suite and capture output
+            # Note: Command substitution intentionally captures exit status separately
+            # rather than relying on set -e, allowing us to continue running remaining
+            # test suites even if one fails. The exit status is preserved in suite_result.
             local output
             if output=$("$test_file" 2>&1); then
                 suite_result=0

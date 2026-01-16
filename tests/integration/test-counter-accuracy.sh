@@ -8,6 +8,9 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/test-helpers.sh"
 
+# Tolerance for concurrent request counting (accounts for requests in-flight during metric fetch)
+CONCURRENT_REQUEST_TOLERANCE=5
+
 echo "Testing counter accuracy..."
 
 # Test: Counters never decrease
@@ -266,7 +269,7 @@ test_response_total_consistency() {
 
     # Total should equal sum of classes (with some tolerance for concurrent requests)
     local diff=$((response_total - sum))
-    if [[ ${diff#-} -le 5 ]]; then  # Allow 5 request tolerance
+    if [[ ${diff#-} -le $CONCURRENT_REQUEST_TOLERANCE ]]; then
         return 0
     else
         echo "Response total ($response_total) doesn't match sum of classes ($sum)"

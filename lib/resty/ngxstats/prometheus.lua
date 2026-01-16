@@ -345,6 +345,8 @@ local function parse_server_zone(parts, value, metric)
         local handler = ssl_handlers[parts[4]]
         if handler then
             handler(parts, value, metric)
+        else
+            ngx.log(ngx.DEBUG, "ngxstats: unknown SSL metric type: ", parts[4] or "nil")
         end
         return
     end
@@ -353,6 +355,8 @@ local function parse_server_zone(parts, value, metric)
     local handler = server_zone_handlers[parts[3]]
     if handler then
         handler(parts, value, metric)
+    else
+        ngx.log(ngx.DEBUG, "ngxstats: unknown server zone metric type: ", parts[3] or "nil")
     end
 end
 
@@ -372,6 +376,8 @@ local function parse_upstream(parts, value, metric)
         local handler = upstream_server_handlers[parts[5]]
         if handler then
             handler(parts, value, metric)
+        else
+            ngx.log(ngx.DEBUG, "ngxstats: unknown upstream server metric type: ", parts[5] or "nil")
         end
         return
     end
@@ -380,6 +386,8 @@ local function parse_upstream(parts, value, metric)
     local handler = upstream_handlers[parts[3]]
     if handler then
         handler(parts, value, metric)
+    else
+        ngx.log(ngx.DEBUG, "ngxstats: unknown upstream metric type: ", parts[3] or "nil")
     end
 end
 

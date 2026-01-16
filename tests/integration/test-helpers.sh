@@ -91,10 +91,11 @@ assert_metric_exists() {
 
 assert_metric_value() {
     local metrics="$1"
-    local metric_pattern="$2"
+    local metric_pattern="$2"  # Expected to be a valid regex pattern
     local expected_value="$3"
 
     local line
+    # Note: metric_pattern is used as a regex; caller must escape special chars if needed
     line=$(echo "$metrics" | grep -E "^${metric_pattern}" | head -1)
 
     if [[ -z "$line" ]]; then
@@ -117,10 +118,11 @@ assert_metric_value() {
 
 assert_metric_gte() {
     local metrics="$1"
-    local metric_pattern="$2"
+    local metric_pattern="$2"  # Expected to be a valid regex pattern
     local min_value="$3"
 
     local line
+    # Note: metric_pattern is used as a regex; caller must escape special chars if needed
     line=$(echo "$metrics" | grep -E "^${metric_pattern}" | head -1)
 
     if [[ -z "$line" ]]; then

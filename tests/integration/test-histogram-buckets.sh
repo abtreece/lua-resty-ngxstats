@@ -10,7 +10,9 @@ source "$SCRIPT_DIR/test-helpers.sh"
 
 echo "Testing histogram bucket functionality..."
 
-# Expected bucket boundaries (from common.lua LATENCY_BUCKETS)
+# Expected bucket boundaries - must be kept in sync with LATENCY_BUCKETS in:
+# lib/resty/ngxstats/common.lua
+# If bucket values change in common.lua, update this array accordingly.
 EXPECTED_BUCKETS=("0.001" "0.005" "0.01" "0.025" "0.05" "0.1" "0.25" "0.5" "1" "2.5" "5" "10" "+Inf")
 
 # Test: Histogram buckets exist for request time (at minimum +Inf and some lower buckets)
