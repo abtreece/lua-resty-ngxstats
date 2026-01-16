@@ -179,6 +179,32 @@ The Datadog dashboard includes:
 - **Connections** - Connection states, accepted/handled rate
 - **SSL/TLS & Rate Limiting** - Protocol distribution, session reuse, rate limit status
 
+#### Import Datadog Monitors
+
+Import the pre-built monitors for alerting:
+
+```bash
+# Import monitors one at a time using jq to extract each monitor
+for monitor in $(cat examples/datadog-monitors.json | jq -c '.monitors[]'); do
+  curl -X POST "https://api.datadoghq.com/api/v1/monitor" \
+    -H "Content-Type: application/json" \
+    -H "DD-API-KEY: ${DD_API_KEY}" \
+    -H "DD-APPLICATION-KEY: ${DD_APP_KEY}" \
+    -d "$monitor"
+done
+```
+
+Included monitor categories:
+- **Availability** - NGINX down, no requests received
+- **Errors** - High 5xx/4xx error rates
+- **Latency** - High average latency, slow requests
+- **Upstream** - Failures, high error rate, high latency, unhealthy status
+- **Connections** - High active connections, unhandled connections
+- **Cache** - Low hit rate, high bypass rate
+- **Rate Limiting** - High rejection rate, rate limiting active
+- **SSL/TLS** - Low session reuse, deprecated protocol usage
+- **Traffic** - Spikes, drops, high bandwidth
+
 ## Metrics Exposed
 
 ### Connection Metrics
