@@ -14,5 +14,5 @@ unused_args = false
 -- Maximum line length
 max_line_length = 140
 
--- Maximum code complexity (raised for parse_metric which handles many metric types)
-max_cyclomatic_complexity = 45
+-- Maximum code complexity (log.lua has inherent complexity due to many metric categories)
+max_cyclomatic_complexity = 25
